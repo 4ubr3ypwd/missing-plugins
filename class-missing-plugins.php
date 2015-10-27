@@ -93,6 +93,8 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 		 * @since  1.0
 		 */
 		private function check_for_missing_plugins() {
+
+			// Add the error.
 			$this->error_handler->add( 'active_plugins_missing', false, array(
 				'title'   => __( 'Missing Active Plugins' ),
 				'args'    => array(),
@@ -111,10 +113,22 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 		 */
 		public function content( $error ) {
 			$content = array(
-				'active_plugins_missing' => __( 'You have active plugins missing locally, would you like to install them?', 'missing_plugins' ),
+				'active_plugins_missing' => $this->content_active_plugins_missing(),
 			);
 
 			return isset( $content[ $error['code'] ] ) ? $content[ $error['code'] ] : false;
+		}
+
+		public function content_active_plugins_missing() {
+			$message = __( '%sThe following plugins missing locally, would you like to install them?%s%s%s%s', 'missing_plugins' );
+
+			$yes_no = sprintf( '<a href="">%s</a> &mdash; <a href="">%s</a>', __( 'Yes', 'missing-plugins' ), __( 'No', 'missing-plugins' ) );
+
+			foreach ( $this->active_plugins as $plugin ) {
+				$plugins .= "<br><br>$plugin";
+			}
+
+			return sprintf( $message, '<div style="text-align: center;">', '<br><br>', $yes_no, $plugins, '</span>' );
 		}
 
 		/**
@@ -137,7 +151,7 @@ else:
 	function __missing_plugins_class_exists() {
 		?>
 			<div class="error">
-				<p><?php _e( 'Sorry, but the <strong>Missing Plugins</strong> plugin seems to be conflicting with another plugin. Please contact <a href="https://twitter.com/aubreypwd">Aubrey Portwood</a> about this.', 'missing-plugins' ); ?></p>
+				<p><?php __e( 'Sorry, but the <strong>Missing Plugins</strong> plugin seems to be conflicting with another plugin. Please contact <a href="https://twitter.com/aubreypwd">Aubrey Portwood</a> about this.', 'missing-plugins' ); ?></p>
 			</div>
 		<?php
 	}
