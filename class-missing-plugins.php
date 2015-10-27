@@ -17,7 +17,7 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 		 * @var object WP_Error
 		 * @since 1.0
 		 */
-		private $errors;
+		private $error_handler;
 
 		/**
 		 *  __  __ _       _             ___ _           _
@@ -30,9 +30,42 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 		 * @since 1.0
 		 */
 		public function __construct( $args = array() ) {
-			$this->error_init();
+			$this->setup_error_handler();
 			$this->set_active_plugins();
-			$this->freeze();
+			$this->check_for_missing_plugins();
+			$this->handle_errors();
+		}
+
+		private function handle_errors() {
+			if ( sizeof( $this->error_handler->errors ) >= 1 ) {
+				// wp_die( print_r( $this->error_handler ) );
+
+				foreach( $this->error_handler->errors as $code => $error ) {
+
+					// Add any filters for content (if using any)
+					if ( isset( $this->error_handler->error_data[ $code ]['filter'] ) ) {
+						add_filter( "missing_plugins_wp_die_{$code}", $this->error_handler->error_data[ $code ]['filter'] );
+					}
+
+					$filter = apply_filters( "missing_plugins_wp_die_{$code}", array(
+						'code' => $code,
+						'error' => $error
+					) );
+
+					// Die
+					wp_die(
+
+						// Use filtered content or one supplied in WP_Error.
+						! is_array( $filter ) && false != $filter ? $filter : ( end( $error ) ? end( $error ) : __( 'Unknown Error', 'missing-plugins' ) ),
+
+						// Title
+						isset( $this->error_handler->error_data[ $code ]['title'] ) ? $this->error_handler->error_data[ $code ]['title'] : __( 'Unknown Error', 'missing-plugins' ),
+
+						// Any args.
+						isset( $this->error_handler->error_data[ $code ]['args'] ) ? $this->error_handler->error_data[ $code ]['args'] : array()
+					);
+				}
+			}
 		}
 
 		/**
@@ -42,13 +75,25 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 		 * @see    https://codex.wordpress.org/Class_Reference/WP_Error WP_Error
 		 * @since  1.0
 		 */
-		private function error_init() {
-			$this->errors = new WP_Error( 'init', __( 'This is just the init error, not used, ever', 'missing-plugins' ) );
-			$this->errors->remove( 'init' );
+		private function setup_error_handler() {
+			$this->error_handler = new WP_Error( 'init', __( 'This is just the init error, not used, ever', 'missing-plugins' ) );
+			$this->error_handler->remove( 'init' );
 		}
 
-		private function freeze() {
+		private function check_for_missing_plugins() {
+			$this->error_handler->add( 'active_plugins_missing', false, array(
+				'title'   => __( 'Missing Active Plugins' ),
+				'args'    => array(),
+				'filter'  => array( $this, 'content' ),
+			) );
+		}
 
+		public function content( $error ) {
+			$content = array(
+				'active_plugins_missing' => __( 'You have active plugins missing locally, would you like to install them?', 'missing_plugins' ),
+			);
+
+			return isset( $content[ $error['code'] ] ) ? $content[ $error['code'] ] : false;
 		}
 
 		/**
