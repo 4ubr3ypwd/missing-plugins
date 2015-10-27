@@ -15,7 +15,7 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 		 * The WP_Error's
 		 *
 		 * @var object WP_Error
-		 * @since 1.0
+		 * @since      1.0
 		 */
 		private $error_handler;
 
@@ -36,6 +36,12 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 			$this->handle_errors();
 		}
 
+		/**
+		 * When errors are present, wp_die and show output.
+		 *
+		 * @return void
+		 * @since  1.0
+		 */
 		private function handle_errors() {
 			if ( sizeof( $this->error_handler->errors ) >= 1 ) {
 				// wp_die( print_r( $this->error_handler ) );
@@ -80,6 +86,12 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 			$this->error_handler->remove( 'init' );
 		}
 
+		/**
+		 * Check for missing plugins, and if there are, add an error.
+		 *
+		 * @return void
+		 * @since  1.0
+		 */
 		private function check_for_missing_plugins() {
 			$this->error_handler->add( 'active_plugins_missing', false, array(
 				'title'   => __( 'Missing Active Plugins' ),
@@ -88,6 +100,15 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 			) );
 		}
 
+		/**
+		 * Content for WP_Error's
+		 *
+		 * Returns the content for the error message supplied in `$error`.
+		 *
+		 * @param  array $error  Array with `code` key and `error` value.
+		 * @return string        The content for that error message.
+		 * @since  1.0
+		 */
 		public function content( $error ) {
 			$content = array(
 				'active_plugins_missing' => __( 'You have active plugins missing locally, would you like to install them?', 'missing_plugins' ),
@@ -111,6 +132,7 @@ else:
 	 * Shows an error in the Admin when there is some kind of conflict.
 	 *
 	 * @return void
+	 * @since  1.0
 	 */
 	function __missing_plugins_class_exists() {
 		?>
