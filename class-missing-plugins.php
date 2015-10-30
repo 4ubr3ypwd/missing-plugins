@@ -9,7 +9,15 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 		 * @var array
 		 * @since 1.0
 		 */
-		private $active_plugins;
+		private $active_plugins = array();
+
+		/**
+		 * The plugins that are activated, but don't have files.
+		 *
+		 * @var array
+		 * @since 1.0
+		 */
+		private $missing_plugins = array();
 
 		/**
 		 * The WP_Error's
@@ -31,19 +39,34 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 		 */
 		public function __construct( $args = array() ) {
 			$this->set_active_plugins();
-			$this->check_for_missing_plugins();
+			$this->set_missing_plugins();
+			$this->the_wp_die_template();
 		}
 
 		/**
-		 * Check for missing plugins, and if there are, add an error.
+		 * Returns true if there are missing plugins.
+		 *
+		 * @return boolean True if there are missing plugin, false if none were found.
+		 * @since  1.0
+		 */
+		private function is_missing_plugins() {
+			if ( sizeof( $this->missing_plugins ) > 0 ) {
+				return true;
+			}
+
+			return false;
+		}
+
+		/**
+		 * Check for missing plugins.
 		 *
 		 * @return void
 		 * @since  1.0
 		 */
-		private function check_for_missing_plugins() {
+		private function set_missing_plugins() {
 			foreach ( $this->active_plugins as $plugin_file ) {
-				if ( ! file_exists( $plugin_file ) && ! isset( $_GET['missing-plugins-disabled'] ) ) {
-					wp_die( "$plugin_file is active, but is not here. Activate? <a href='update.php?action=install-plugin&plugin=theme-check&_wpnonce=f4d0f3c340&missing-plugins-disabled=true'>Yes</a>" );
+				if ( ! file_exists( $plugin_file ) ) {
+					$this->missing_plugins[] = $plugin_file;
 				}
 			}
 		}
@@ -54,10 +77,35 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 		 * @since 1.0
 		 */
 		private function set_active_plugins() {
-			$active_plugins = get_option( 'active_plugins' );
+			$active_plugins = get_option( 'active_plugins' ); // The active plugins in the DB
+
+			// Add each one with their direct path included.
 			foreach ( $active_plugins as $key => $plugin_file ) {
 				$this->active_plugins[ $plugin_file ] = trailingslashit( WP_PLUGIN_DIR ) . $plugin_file;
 			}
+		}
+
+		/**
+		 * The output when there are missing plugin files.
+		 *
+		 * @return void
+		 * @since 1.0
+		 */
+		private function the_wp_die_template() {
+			if ( ! $this->is_missing_plugins() ) {
+				return false; // No output needed.
+			}
+
+			ob_start(); ?>
+
+				<h2><?php _e( 'You have missing plugin files.', 'missing-plugins' ); ?></h2>
+
+				<p><?php _e( 'The following plugins were active in the database, but their files are missing in your <code>plugins</code> folder. If you would like us to install and activate them, please select the ones you need and continue.', 'missing-plugins' ); ?></p>
+
+			<?php $output = ob_get_clean();
+
+			// Die
+			wp_die( $output, __( 'Missing Plugins', 'missing-plugins' ), array() );
 		}
 	}
 else:
