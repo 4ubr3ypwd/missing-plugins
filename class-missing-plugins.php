@@ -30,60 +30,8 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 		 * @since 1.0
 		 */
 		public function __construct( $args = array() ) {
-			$this->setup_error_handler();
 			$this->set_active_plugins();
 			$this->check_for_missing_plugins();
-			$this->handle_errors();
-		}
-
-		/**
-		 * When errors are present, wp_die and show output.
-		 *
-		 * @return void
-		 * @since  1.0
-		 */
-		private function handle_errors() {
-			if ( sizeof( $this->error_handler->errors ) >= 1 ) {
-				// wp_die( print_r( $this->error_handler ) );
-
-				foreach( $this->error_handler->errors as $code => $error ) {
-
-					// Add any filters for content (if using any)
-					if ( isset( $this->error_handler->error_data[ $code ]['filter'] ) ) {
-						add_filter( "missing_plugins_wp_die_{$code}", $this->error_handler->error_data[ $code ]['filter'] );
-					}
-
-					$filter = apply_filters( "missing_plugins_wp_die_{$code}", array(
-						'code' => $code,
-						'error' => $error
-					) );
-
-					// Die
-					wp_die(
-
-						// Use filtered content or one supplied in WP_Error.
-						! is_array( $filter ) && false != $filter ? $filter : ( end( $error ) ? end( $error ) : __( 'Unknown Error', 'missing-plugins' ) ),
-
-						// Title
-						isset( $this->error_handler->error_data[ $code ]['title'] ) ? $this->error_handler->error_data[ $code ]['title'] : __( 'Unknown Error', 'missing-plugins' ),
-
-						// Any args.
-						isset( $this->error_handler->error_data[ $code ]['args'] ) ? $this->error_handler->error_data[ $code ]['args'] : array()
-					);
-				}
-			}
-		}
-
-		/**
-		 * Sets up an empty WP_Error object.
-		 *
-		 * @return object WP_Error Object
-		 * @see    https://codex.wordpress.org/Class_Reference/WP_Error WP_Error
-		 * @since  1.0
-		 */
-		private function setup_error_handler() {
-			$this->error_handler = new WP_Error( 'init', __( 'This is just the init error, not used, ever', 'missing-plugins' ) );
-			$this->error_handler->remove( 'init' );
 		}
 
 		/**
@@ -93,42 +41,11 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 		 * @since  1.0
 		 */
 		private function check_for_missing_plugins() {
-
-			// Add the error.
-			$this->error_handler->add( 'active_plugins_missing', false, array(
-				'title'   => __( 'Missing Active Plugins' ),
-				'args'    => array(),
-				'filter'  => array( $this, 'content' ),
-			) );
-		}
-
-		/**
-		 * Content for WP_Error's
-		 *
-		 * Returns the content for the error message supplied in `$error`.
-		 *
-		 * @param  array $error  Array with `code` key and `error` value.
-		 * @return string        The content for that error message.
-		 * @since  1.0
-		 */
-		public function content( $error ) {
-			$content = array(
-				'active_plugins_missing' => $this->content_active_plugins_missing(),
-			);
-
-			return isset( $content[ $error['code'] ] ) ? $content[ $error['code'] ] : false;
-		}
-
-		public function content_active_plugins_missing() {
-			$message = __( '%sThe following plugins missing locally, would you like to install them?%s%s%s%s', 'missing_plugins' );
-
-			$yes_no = sprintf( '<a href="">%s</a> &mdash; <a href="">%s</a>', __( 'Yes', 'missing-plugins' ), __( 'No', 'missing-plugins' ) );
-
-			foreach ( $this->active_plugins as $plugin ) {
-				$plugins .= "<br><br>$plugin";
+			foreach ( $this->active_plugins as $plugin_file ) {
+				if ( ! file_exists( $plugin_file ) && ! isset( $_GET['missing-plugins-disabled'] ) ) {
+					wp_die( "$plugin_file is active, but is not here. Activate? <a href='update.php?action=install-plugin&plugin=theme-check&_wpnonce=f4d0f3c340&missing-plugins-disabled=true'>Yes</a>" );
+				}
 			}
-
-			return sprintf( $message, '<div style="text-align: center;">', '<br><br>', $yes_no, $plugins, '</span>' );
 		}
 
 		/**
@@ -137,7 +54,10 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 		 * @since 1.0
 		 */
 		private function set_active_plugins() {
-			$this->active_plugins = get_option( 'active_plugins' );
+			$active_plugins = get_option( 'active_plugins' );
+			foreach ( $active_plugins as $key => $plugin_file ) {
+				$this->active_plugins[ $plugin_file ] = trailingslashit( WP_PLUGIN_DIR ) . $plugin_file;
+			}
 		}
 	}
 else:
