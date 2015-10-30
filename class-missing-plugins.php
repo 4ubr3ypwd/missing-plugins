@@ -28,11 +28,7 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 		private $error_handler;
 
 		/**
-		 *  __  __ _       _             ___ _           _
-		 * |  \/  (_)_____(_)_ _  __ _  | _ \ |_  _ __ _(_)_ _  ___
-		 * | |\/| | (_-<_-< | ' \/ _` | |  _/ | || / _` | | ' \(_-<
-		 * |_|  |_|_/__/__/_|_||_\__, | |_| |_|\_,_\__, |_|_||_/__/
-		 *                       |___/             |___/
+		 * Construct.
 		 *
 		 * @param array $args Arguments
 		 * @since 1.0
@@ -100,7 +96,7 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 
 				<h2><?php _e( 'You have missing plugin files.', 'missing-plugins' ); ?></h2>
 
-				<p><?php _e( 'The following plugins were active in the database, but their files are missing in your <code>plugins</code> folder. If you would like us to install and activate them, please select the ones you need and continue.', 'missing-plugins' ); ?></p>
+				<p><?php echo sprintf( __( 'The following plugins were active in the database, but their files are missing in your <code>%s</code> folder. If you would like us to install and activate them, please select the ones you need and continue.', 'missing-plugins' ), wp_unslash( basename( WP_PLUGIN_DIR ) ) ); ?></p>
 
 			<?php $output = ob_get_clean();
 
