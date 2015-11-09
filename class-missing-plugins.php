@@ -115,6 +115,9 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 		 * @since 1.0
 		 */
 		private function the_wp_die_template() {
+
+			$title = __( 'You have missing plugin files.', 'missing-plugins' );
+
 			ob_start(); ?>
 
 				<style>
@@ -142,7 +145,7 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 
 				<form action="?<?php echo esc_attr( $this->options['installing_missing_plugins_key'] ); ?>=true" method="post">
 
-					<h2><?php _e( 'You have missing plugin files.', 'missing-plugins' ); ?></h2>
+					<h2><?php echo $title; ?></h2>
 
 					<p><?php echo sprintf( __( 'The following plugins were active in the database, but their files are missing in your <code>%s</code> folder. If you would like us to install and activate them, please select the ones you need and continue.', 'missing-plugins' ), wp_unslash( basename( WP_PLUGIN_DIR ) ) ); ?></p>
 
@@ -162,7 +165,7 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 			<?php $output = ob_get_clean();
 
 			// Die
-			wp_die( $output, __( 'Missing Plugins', 'missing-plugins' ), array() );
+			wp_die( $output, $title, array() );
 		}
 	}
 else:
