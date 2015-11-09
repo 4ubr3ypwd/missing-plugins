@@ -4,16 +4,6 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 	class Missing_Plugins {
 
 		/**
-		 * Options used throughout the plugin.
-		 *
-		 * @var array
-		 * @since 1.0
-		 */
-		private $options = array(
-			'installing_missing_plugins_key' => 'install_missing_plugins',
-		);
-
-		/**
 		 * The active plugins when this plugin loads.
 		 *
 		 * @var array
@@ -38,15 +28,31 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 		private $error_handler;
 
 		/**
+		 * The URL to the WordPress Plugins Repository
+		 *
+		 * @var string
+		 */
+		private $wp_org_plugins_url = 'http://plugins.svn.wordpress.org';
+
+		/**
+		 * Plugins that are missing, that aren't in the plugin repo.
+		 *
+		 * @var array
+		 */
+		private $wp_non_org_plugins = array();
+
+		/**
 		 * Construct.
 		 *
 		 * @param array $args Arguments
 		 * @since 1.0
 		 */
 		public function __construct( $args = array() ) {
-			$this->set_active_plugins();
-			$this->set_missing_plugins();
+			$this->set_active_plugins(); // Store the active plugins into an array from DB.
+			$this->set_missing_plugins(); // Go through the active plugins and find out which one's don't have local files.
+			$this->filter_out_non_wp_org_plugins(); // We can only install/activate wp.org plugins, so filter out non-wp.org plugins.
 
+			// If we're not in the process of installing plugins and we actually have missing plugins.
 			if ( ! $this->is_installing() && $this->is_missing_plugins() ) {
 				$this->the_wp_die_template();
 			}
@@ -55,15 +61,11 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 		/**
 		 * Are we in the process of installing missing plugins?
 		 *
-		 * When the user submits the form with the plugins they want
-		 * installed, this key is set to something to show that we shouldn't
-		 * die.
-		 *
 		 * @return boolean True for yes, false for no.
 		 * @since  1.0
 		 */
 		private function is_installing() {
-			return isset( $_GET[ $this->options['installing_missing_plugins_key'] ] );
+			// TODO: Figure out the best way to note that we're in the process of installing/activating plugins.
 		}
 
 		/**
@@ -90,6 +92,28 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 			foreach ( $this->active_plugins as $plugin_file ) {
 				if ( ! file_exists( $plugin_file ) ) {
 					$this->missing_plugins[] = $plugin_file;
+				}
+			}
+		}
+
+		/**
+		 * Filter our plugins that aren't on the WordPress.org repo.
+		 *
+		 * @return  void
+		 * @since   1.0
+		 */
+		private function filter_out_non_wp_org_plugins() {
+			foreach ( $this->missing_plugins as $key => $plugin_path ) {
+				$plugin_name = basename( dirname( $plugin_path ) );
+				$plugin_file = basename( $plugin_path ); // Get just the filename, which should be in the trunk of the plugin.
+				$url = trailingslashit( $this->wp_org_plugins_url ) . trailingslashit( $plugin_name ) . "trunk/$plugin_file";
+
+				$response = wp_remote_get( $url ); // See if the file exists in trunk.
+
+				// 404 responses mean the plugin isn't able to install/activate because we don't know where the plugin is.
+				if ( $response && '404' == wp_remote_retrieve_response_code( $response ) ) {
+					unset ( $this->missing_plugins[ $key ] ); // Remove from the list of missing plugins that we can install/activate.
+					$this->wp_non_org_plugins[] = $plugin_path; // Note that this is a non-wordpress plugin (will be used later).
 				}
 			}
 		}
