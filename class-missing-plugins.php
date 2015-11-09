@@ -4,6 +4,16 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 	class Missing_Plugins {
 
 		/**
+		 * Options used throughout the plugin.
+		 *
+		 * @var array
+		 * @since 1.0
+		 */
+		private $options = array(
+			'installing_missing_plugins_key' => 'install_missing_plugins',
+		);
+
+		/**
 		 * The active plugins when this plugin loads.
 		 *
 		 * @var array
@@ -36,7 +46,24 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 		public function __construct( $args = array() ) {
 			$this->set_active_plugins();
 			$this->set_missing_plugins();
-			$this->the_wp_die_template();
+
+			if ( ! $this->is_installing() && $this->is_missing_plugins() ) {
+				$this->the_wp_die_template();
+			}
+		}
+
+		/**
+		 * Are we in the process of installing missing plugins?
+		 *
+		 * When the user submits the form with the plugins they want
+		 * installed, this key is set to something to show that we shouldn't
+		 * die.
+		 *
+		 * @return boolean True for yes, false for no.
+		 * @since  1.0
+		 */
+		private function is_installing() {
+			return isset( $_GET[ $this->options['installing_missing_plugins_key'] ] );
 		}
 
 		/**
@@ -82,21 +109,55 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 		}
 
 		/**
-		 * The output when there are missing plugin files.
+		 * Ask the users which plugins (missing files) they want to install.
 		 *
 		 * @return void
 		 * @since 1.0
 		 */
 		private function the_wp_die_template() {
-			if ( ! $this->is_missing_plugins() ) {
-				return false; // No output needed.
-			}
-
 			ob_start(); ?>
 
-				<h2><?php _e( 'You have missing plugin files.', 'missing-plugins' ); ?></h2>
+				<style>
+					.list {
+						border: 1px solid #eee;
+						border-spacing: 0;
+						margin: 20px 0;
+					}
 
-				<p><?php echo sprintf( __( 'The following plugins were active in the database, but their files are missing in your <code>%s</code> folder. If you would like us to install and activate them, please select the ones you need and continue.', 'missing-plugins' ), wp_unslash( basename( WP_PLUGIN_DIR ) ) ); ?></p>
+					.list-item td {
+						border-bottom: 1px solid #eee;
+						border-spacing: 0;
+						border-right: 1px solid #eee;
+						padding: 10px;
+					}
+
+					.list-item td:last-child {
+						border-right: 0;
+					}
+
+					.list-item:last-child td {
+						border-bottom: 0;
+					}
+				</style>
+
+				<form action="?<?php echo esc_attr( $this->options['installing_missing_plugins_key'] ); ?>=true" method="post">
+
+					<h2><?php _e( 'You have missing plugin files.', 'missing-plugins' ); ?></h2>
+
+					<p><?php echo sprintf( __( 'The following plugins were active in the database, but their files are missing in your <code>%s</code> folder. If you would like us to install and activate them, please select the ones you need and continue.', 'missing-plugins' ), wp_unslash( basename( WP_PLUGIN_DIR ) ) ); ?></p>
+
+					<table class="list">
+						<?php foreach ( $this->missing_plugins as $plugin_file ) : ?>
+							<tr class="list-item">
+								<td><input type="checkbox" name="activate_plugins[]" value="<?php echo esc_attr( $plugin_file ); ?>" /></td>
+								<td><?php echo esc_html( $plugin_file ); ?></td>
+							</tr>
+						<?php endforeach; ?>
+					</table>
+
+					<p><input type="submit" value="<?php _e( 'Continue', 'missing-plugins' ); ?>" /></p>
+
+				</form>
 
 			<?php $output = ob_get_clean();
 
