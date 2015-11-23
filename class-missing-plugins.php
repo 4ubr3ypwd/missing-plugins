@@ -31,6 +31,7 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 		 * The URL to the WordPress Plugins Repository
 		 *
 		 * @var string
+		 * @since      1.0
 		 */
 		private $wp_org_plugins_url = 'http://plugins.svn.wordpress.org';
 
@@ -38,8 +39,17 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 		 * Plugins that are missing, that aren't in the plugin repo.
 		 *
 		 * @var array
+		 * @since      1.0
 		 */
 		private $wp_non_org_plugins = array();
+
+		/**
+		 * The nonce for this instance.
+		 *
+		 * @var boolean
+		 * @since      1.0
+		 */
+		private $wp_nonce_action = false;
 
 		/**
 		 * Construct.
@@ -48,6 +58,17 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 		 * @since 1.0
 		 */
 		public function __construct( $args = array() ) {
+			add_action( 'init', array( $this, 'bootup' ) );
+		}
+
+		/**
+		 * The very first thing that happens.
+		 *
+		 * @return void
+		 */
+		public function bootup() {
+			$this->wp_nonce_action = substr( str_shuffle( wp_salt( 'nonce' ) ), 0, 10 ); // Generate a random nonce action name to be used by the form.
+
 			$this->set_active_plugins(); // Store the active plugins into an array from DB.
 			$this->set_missing_plugins(); // Go through the active plugins and find out which one's don't have local files.
 			$this->filter_out_non_wp_org_plugins(); // We can only install/activate wp.org plugins, so filter out non-wp.org plugins.
@@ -55,7 +76,17 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 			// If we're not in the process of installing plugins and we actually have missing plugins.
 			if ( ! $this->is_installing() && $this->is_missing_plugins() ) {
 				$this->the_wp_die_template();
+			} else if ( $this->is_secure_submit() ) {
+				$this->set_plugins_to_activate();
 			}
+		}
+
+		private function is_secure_submit() {
+			//
+		}
+
+		private function set_plugins_to_activate() {
+			// Todo set the plugins to activate from form submission.
 		}
 
 		/**
@@ -65,7 +96,7 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 		 * @since  1.0
 		 */
 		private function is_installing() {
-			// TODO: Figure out the best way to note that we're in the process of installing/activating plugins.
+
 		}
 
 		/**
@@ -167,7 +198,7 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 					}
 				</style>
 
-				<form action="?<?php echo esc_attr( $this->options['installing_missing_plugins_key'] ); ?>=true" method="post">
+				<form action="" method="post">
 
 					<h2><?php echo $title; ?></h2>
 
@@ -176,13 +207,15 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 					<table class="list">
 						<?php foreach ( $this->missing_plugins as $plugin_file ) : ?>
 							<tr class="list-item">
-								<td><input type="checkbox" name="activate_plugins[]" value="<?php echo esc_attr( $plugin_file ); ?>" /></td>
+								<td><input type="checkbox" name="plugins_to_activate[]" value="<?php echo esc_attr( $plugin_file ); ?>" /></td>
 								<td><?php echo esc_html( $plugin_file ); ?></td>
 							</tr>
 						<?php endforeach; ?>
 					</table>
 
 					<p><input type="submit" value="<?php _e( 'Continue', 'missing-plugins' ); ?>" /></p>
+
+					<?php wp_nonce_field( $this->wp_nonce_action ); ?>
 
 				</form>
 
