@@ -52,6 +52,14 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 		private $wp_nonce_action = false;
 
 		/**
+		 * The name for the nonce input.
+		 *
+		 * @var boolean
+		 * @since      1.0
+		 */
+		private $form_nonce_name = false;
+
+		/**
 		 * Construct.
 		 *
 		 * @param array $args Arguments
@@ -67,8 +75,7 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 		 * @return void
 		 */
 		public function bootup() {
-			$this->wp_nonce_action = substr( str_shuffle( wp_salt( 'nonce' ) ), 0, 10 ); // Generate a random nonce action name to be used by the form.
-
+			$this->set_nonce_vars(); // Set the nonce name and action.
 			$this->set_active_plugins(); // Store the active plugins into an array from DB.
 			$this->set_missing_plugins(); // Go through the active plugins and find out which one's don't have local files.
 			$this->filter_out_non_wp_org_plugins(); // We can only install/activate wp.org plugins, so filter out non-wp.org plugins.
@@ -78,11 +85,30 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 				$this->the_wp_die_template();
 			} else if ( $this->is_secure_submit() ) {
 				$this->set_plugins_to_activate();
+			} else {
+				wp_die( __( 'Something went wrong, please try again.', 'missing-plugins' ) );
 			}
 		}
 
+		private function set_nonce_vars() {
+			$this->form_nonce_name = 'wp_missing_plugins_nonce';
+			$this->wp_nonce_action = 'wp_missing_plugins_nonce_action';
+		}
+
+		private function salted_name( $front = 10, $end = 20 ) {
+			return esc_attr( sanitize_title_with_dashes( md5( substr( str_shuffle( wp_salt( 'nonce' ) ), 10, 20 ) ) ) );
+		}
+
 		private function is_secure_submit() {
-			//
+			$nonce = wp_verify_nonce( $_REQUEST[ $this->form_nonce_name ], $this->wp_nonce_action );
+			$logged_in = is_user_logged_in();
+			$is_admin_user = current_user_can( 'activate_plugins' );
+
+			if ( $nonce && $logged_in && $is_admin_user ) {
+				return true;
+			}
+
+			return false;
 		}
 
 		private function set_plugins_to_activate() {
@@ -215,7 +241,7 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 
 					<p><input type="submit" value="<?php _e( 'Continue', 'missing-plugins' ); ?>" /></p>
 
-					<?php wp_nonce_field( $this->wp_nonce_action ); ?>
+					<?php wp_nonce_field( $this->wp_nonce_action, $this->form_nonce_name ); ?>
 
 				</form>
 
