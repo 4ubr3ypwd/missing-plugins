@@ -189,6 +189,14 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 			}
 		}
 
+		private function is_admin_user() {
+			if ( is_user_logged_in() && current_user_can( 'manage_options' ) ) {
+				return true;
+			}
+
+			return false;
+		}
+
 		/**
 		 * Ask the users which plugins (missing files) they want to install.
 		 *
@@ -222,6 +230,24 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 					.list-item:last-child td {
 						border-bottom: 0;
 					}
+
+					.login-form {
+						padding: 20px;
+						border: 1px solid #eee;
+					}
+
+					.login-form label,
+					.login-form input {
+						display: inline-block;
+					}
+
+					.login-form label {
+						width: 25%;
+					}
+
+					.login-form input {
+						width: 60%;
+					}
 				</style>
 
 				<form action="" method="post">
@@ -238,6 +264,15 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 							</tr>
 						<?php endforeach; ?>
 					</table>
+
+					<?php if ( ! $this->is_admin_user() ) : ?>
+						<p><?php _e( 'You must provide login details for an administrative user to continue:', 'missing-plugins' ); ?></p>
+
+						<div class="login-form">
+							<p><label for="username">Username:</label> <input type="text" name="username"></p>
+							<p><label for="password">Password:</label> <input type="password" name="password"></p>
+						</div>
+					<?php endif; ?>
 
 					<p><input type="submit" value="<?php _e( 'Continue', 'missing-plugins' ); ?>" /></p>
 
