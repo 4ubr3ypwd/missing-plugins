@@ -84,29 +84,21 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 			if ( ! $this->is_installing() && $this->is_missing_plugins() ) {
 				$this->the_wp_die_template();
 			} else if ( $this->is_secure_submit() ) {
-				$this->activate_missing_plugins();
+				$this->set_plugins_to_activate();
 			} else {
 				wp_die( __( 'Something went wrong, please try again.', 'missing-plugins' ) );
 			}
 		}
 
-		/**
-		 * Set the names of the nonce field name and action.
-		 *
-		 * @return  void
-		 * @since  1.0
-		 */
 		private function set_nonce_vars() {
 			$this->form_nonce_name = 'wp_missing_plugins_nonce';
 			$this->wp_nonce_action = 'wp_missing_plugins_nonce_action';
 		}
 
-		/**
-		 * Check if the submitted data was properly nonced.
-		 *
-		 * @return boolean True if nonce checks out, the user is logged in, and the user is an admin user.
-		 * @since  1.0
-		 */
+		private function salted_name( $front = 10, $end = 20 ) {
+			return esc_attr( sanitize_title_with_dashes( md5( substr( str_shuffle( wp_salt( 'nonce' ) ), 10, 20 ) ) ) );
+		}
+
 		private function is_secure_submit() {
 			$nonce = wp_verify_nonce( $_REQUEST[ $this->form_nonce_name ], $this->wp_nonce_action );
 			$logged_in = is_user_logged_in();
@@ -119,21 +111,7 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 			return false;
 		}
 
-		function logged_in_user_is_an_admin() {
-			if ( is_user_logged_in() && current_user_can( 'administrator' ) ) {
-				return true;
-			} else {
-				return false;
-			}
-		}
-
-		/**
-		 * Activate missing plugins.
-		 *
-		 * @return void
-		 * @since  1.0
-		 */
-		private function activate_missing_plugins() {
+		private function set_plugins_to_activate() {
 			// Todo set the plugins to activate from form submission.
 		}
 
@@ -223,84 +201,39 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 
 			ob_start(); ?>
 
-			<!-- Styles -->
-			<style>
-				.list {
-					border: 1px solid #eee;
-					border-spacing: 0;
-					margin: 20px 0;
-				}
-
-				.list-item td {
-					border-bottom: 1px solid #eee;
-					border-spacing: 0;
-					border-right: 1px solid #eee;
-					padding: 10px;
-				}
-
-				.list-item td:last-child {
-					border-right: 0;
-				}
-
-				.list-item:last-child td {
-					border-bottom: 0;
-				}
-
-				#loginform {
-					border: 1px solid #eee;
-					padding: 20px;
-					margin: 50px auto;
-				}
-
-				@media (min-width: 640px) {
-					#loginform {
-						width: 45%;
+				<style>
+					.list {
+						border: 1px solid #eee;
+						border-spacing: 0;
+						margin: 20px 0;
 					}
-				}
 
-				#loginform .login-remember label {
-					width: 100%;
-				}
+					.list-item td {
+						border-bottom: 1px solid #eee;
+						border-spacing: 0;
+						border-right: 1px solid #eee;
+						padding: 10px;
+					}
 
-				#loginform label {
-					display: inline-block;
-					width: 25%;
-				}
+					.list-item td:last-child {
+						border-right: 0;
+					}
 
-				#loginform input[type="text"],
-				#loginform input[type="password"] {
-					width: 70%;
-				}
-
-				.login-submit,
-				.login-remember label {
-					padding-left: 25%;
-				}
-			</style>
-
-			<!-- Title -->
-			<h2><?php echo $title; ?></h2>
-
-			<!-- Login Form -->
-			<?php if ( ! is_user_logged_in() || ! $this->logged_in_user_is_an_admin() ): ?>
-
-				<!-- You are not logged in, you have to login, or you are not logged in as an administrator, give opportunity to do so. -->
-				<p><?php _e( 'You have plugin files missing for plugins you have active in your database. You need to login as an administrator to continue and install them.', 'missing-plugins' ); ?></p>
-
-				<?php wp_login_form(); ?>
-
-			<!-- Plugin form -- >
-			<?php elseif ( $this->logged_in_user_is_an_admin() ) : ?>
-				<!-- You are logged in as an admin, you are good to go. -->
+					.list-item:last-child td {
+						border-bottom: 0;
+					}
+				</style>
 
 				<form action="" method="post">
+
+					<h2><?php echo $title; ?></h2>
 
 					<p><?php echo sprintf( __( 'The following plugins were active in the database, but their files are missing in your <code>%s</code> folder. If you would like us to install and activate them, please select the ones you need and continue.', 'missing-plugins' ), wp_unslash( basename( WP_PLUGIN_DIR ) ) ); ?></p>
 
 					<table class="list">
 						<?php foreach ( $this->missing_plugins as $plugin_file ) : ?>
 							<tr class="list-item">
-								<td><input type="checkbox" checked="checked" name="plugins_to_activate[]" value="<?php echo esc_attr( $plugin_file ); ?>" /></td>
+								<td><input type="checkbox" name="plugins_to_activate[]" value="<?php echo esc_attr( $plugin_file ); ?>" /></td>
 								<td><?php echo esc_html( $plugin_file ); ?></td>
 							</tr>
 						<?php endforeach; ?>
@@ -311,7 +244,6 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 					<?php wp_nonce_field( $this->wp_nonce_action, $this->form_nonce_name ); ?>
 
 				</form>
-			<?php endif; ?>
 
 			<?php $output = ob_get_clean();
 
