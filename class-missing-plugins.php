@@ -83,10 +83,10 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 			// If we're not in the process of installing plugins and we actually have missing plugins.
 			if ( ! $this->is_installing() && $this->is_missing_plugins() ) {
 				$this->the_wp_die_template();
-			} else if ( $this->is_secure_submit() ) {
+			} else if ( $this->is_secure_submit() && $this->is_installing() ) {
 				$this->set_plugins_to_activate();
 			} else {
-				wp_die( __( 'Something went wrong, please try again.', 'missing-plugins' ) );
+				wp_die( __( 'Something went wrong, please go back and try again.', 'missing-plugins' ) );
 			}
 		}
 
@@ -97,20 +97,39 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 
 		private function is_secure_submit() {
 			if ( ! current_user_can( 'administrator' ) && ( ! isset( $_REQUEST['username'] ) || ! isset( $_REQUEST['password'] ) ) ) {
-				return false; // We need at least your username and password if you're not logged in as an administrator
+				return false; // We need at least your username and password if you're not logged in as an administrator.
 			}
 
+			if ( ! current_user_can( 'administrator' ) ) {
+				$username = $_REQUEST['username'];
+				$password = $_REQUEST['password'];
+				$user = get_user_by( 'login', $username );
+
+				if ( ! $user ) {
+					return false; // If the user is not in the db.
+				}
+
+				$user_okay = wp_check_password( $password, $user->data->user_pass, $user->ID );
+			} else {
+				$user_okay = true; // The current user is an administrator.
+			}
+
+			if ( ! $user_okay ) {
+				return false; // If password does not check out.
+			}
+
+			// Get the nonce.
 			$nonce = wp_verify_nonce( $_REQUEST[ $this->form_nonce_name ], $this->wp_nonce_action );
 
-			if ( $nonce ) {
-				return true;
+			if ( user_can( $user, 'administrator' ) && $nonce ) {
+				return true; // If the user is an administrator and the nonce checks out.
 			}
 
 			return false;
 		}
 
 		private function set_plugins_to_activate() {
-			// Todo set the plugins to activate from form submission.
+			wp_die( __( 'This is where we would activate plugins...', 'missing-plugins' ) );
 		}
 
 		/**
@@ -120,7 +139,13 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 		 * @since  1.0
 		 */
 		private function is_installing() {
+			$form_submit = isset( $_REQUEST[ $this->form_nonce_name ] );
 
+			if ( $form_submit ) {
+				return true;
+			}
+
+			return false;
 		}
 
 		/**
