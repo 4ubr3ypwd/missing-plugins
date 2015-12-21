@@ -96,6 +96,10 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 		}
 
 		private function is_secure_submit() {
+			if ( ! current_user_can( 'administrator' ) && ( ! isset( $_REQUEST['username'] ) || ! isset( $_REQUEST['password'] ) ) ) {
+				return false; // We need at least your username and password if you're not logged in as an administrator
+			}
+
 			$nonce = wp_verify_nonce( $_REQUEST[ $this->form_nonce_name ], $this->wp_nonce_action );
 
 			if ( $nonce ) {
