@@ -101,10 +101,8 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 
 		private function is_secure_submit() {
 			$nonce = wp_verify_nonce( $_REQUEST[ $this->form_nonce_name ], $this->wp_nonce_action );
-			$logged_in = is_user_logged_in();
-			$is_admin_user = current_user_can( 'activate_plugins' );
 
-			if ( $nonce && $logged_in && $is_admin_user ) {
+			if ( $nonce ) {
 				return true;
 			}
 
