@@ -60,6 +60,14 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 		private $form_nonce_name = false;
 
 		/**
+		 * A list of plugins to activate.
+		 *
+		 * @var array
+		 * @since  1.0
+		 */
+		private $plugins_to_activate = array();
+
+		/**
 		 * Construct.
 		 *
 		 * @param array $args Arguments
@@ -128,8 +136,27 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 			return false;
 		}
 
+		/**
+		 * Cross checks the submitted plugins to activate with the plugins active, initially, in the database.
+		 *
+		 * @param  array $plugins_to_activate Plugins submitted by the user to activate.
+		 * @return boolean                    False if an injected plugin is found, true if all the requested plugins are in the DB currently.
+		 * @since  1.0
+		 */
+		private function cross_check_with_active_plugins( $plugins_to_activate ) {
+			foreach( $plugins_to_activate as $plugin_to_activate ) {
+				if ( ! in_array( $plugin_to_activate, $this->active_plugins ) ) {
+					// Die if a plugin is not in the database! Possible hijack!
+					wp_die( sprintf( __( "Sorry, but %s is not currently in the database and cannot be installed. It's possible that a hijacking script added this plugin to your form when you submitted it, in an attempt to add an outside plugin.", 'missing-plugins' ), "<code>$plugin_to_activate</code>" ) );
+				}
+			}
+
+			return $plugins_to_activate;
+		}
+
 		private function set_plugins_to_activate() {
-			wp_die( __( 'This is where we would activate plugins...', 'missing-plugins' ) );
+			$this->plugins_to_activate = $this->cross_check_with_active_plugins( $_REQUEST['plugins_to_activate'] ); // These are the plugins the user chose to install and activate.
+			wp_die( 'Installing plugins...' );
 		}
 
 		/**
@@ -221,6 +248,24 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 		}
 
 		/**
+		 * Checks if MISSING_PLUGINS_HIJACK is set in wp-config.php
+		 *
+		 * This is an easy way to add a "hijecked" plugin to the list of
+		 * plugins submitted by the user.
+		 *
+		 * This simulates adding a plugin that isn't even in the database.
+		 *
+		 * @return boolean True if it is and set to true itself, false if not.
+		 * @since  1.0
+		 */
+		private function is_hijack_mode() {
+			// Add define( 'MISSING_PLUGINS_HIJACK', true ) to your wp-config to set this mode.
+			if ( defined( 'MISSING_PLUGINS_HIJACK' ) && MISSING_PLUGINS_HIJACK ) {
+				return true;
+			}
+		}
+
+		/**
 		 * Ask the users which plugins (missing files) they want to install.
 		 *
 		 * @return void
@@ -286,6 +331,13 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 								<td><?php echo esc_html( $plugin_file ); ?></td>
 							</tr>
 						<?php endforeach; ?>
+
+						<?php if ( $this->is_hijack_mode() ) : ?>
+							<tr class="list-item">
+								<td><input type="checkbox" name="plugins_to_activate[]" checked value="hijacked-plugin.php" /></td>
+								<td>hijacked-plugin.php</td>
+							</tr>
+						<?php endif; ?>
 					</table>
 
 					<?php if ( ! $this->is_admin_user() ) : ?>
