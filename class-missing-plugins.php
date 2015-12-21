@@ -292,12 +292,12 @@ else:
 	 * @return void
 	 * @since  1.0
 	 */
-	function __missing_plugins_class_exists() {
+	function missing_plugins_class_exists() {
 		?>
 			<div class="error">
 				<p><?php __e( 'Sorry, but the <strong>Missing Plugins</strong> plugin seems to be conflicting with another plugin. Please contact <a href="https://twitter.com/aubreypwd">Aubrey Portwood</a> about this.', 'missing-plugins' ); ?></p>
 			</div>
 		<?php
 	}
-	add_action( 'admin_notices', '__missing_plugins_class_exists' );
+	add_action( 'admin_notices', 'missing_plugins_class_exists' );
 endif;
