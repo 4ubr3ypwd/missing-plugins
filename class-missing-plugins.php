@@ -269,8 +269,8 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 						<p><?php _e( 'You must provide login details for an administrative user to continue:', 'missing-plugins' ); ?></p>
 
 						<div class="login-form">
-							<p><label for="username">Username:</label> <input type="text" name="username"></p>
-							<p><label for="password">Password:</label> <input type="password" name="password"></p>
+							<p><label for="username"><?php _e( 'Username:', 'missing-plugins' ); ?></label> <input type="text" name="username"></p>
+							<p><label for="password"><?php _e( 'Password:', 'missing-plugins' ); ?></label> <input type="password" name="password"></p>
 						</div>
 					<?php endif; ?>
 
