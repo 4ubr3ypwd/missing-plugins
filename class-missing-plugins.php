@@ -83,6 +83,13 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 		 * @return void
 		 */
 		public function bootup() {
+			/**
+			 * Set define( 'SKIP_MISSING_PLUGINS', true ) to skip loading this plugin.
+			 */
+			if ( defined( 'SKIP_MISSING_PLUGINS' ) && true === SKIP_MISSING_PLUGINS ) {
+				return; // Don't load this plugin, skip loading it.
+			}
+
 			$this->set_nonce_vars(); // Set the nonce name and action.
 			$this->set_active_plugins(); // Store the active plugins into an array from DB.
 			$this->set_missing_plugins(); // Go through the active plugins and find out which one's don't have local files.
@@ -90,12 +97,17 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 
 			// If we're not in the process of installing plugins and we actually have missing plugins.
 			if ( ! $this->is_installing() && $this->is_missing_plugins() ) {
-				$this->the_wp_die_template();
+				$this->the_wp_die_template(); // Show the form!
 			} else if ( $this->is_secure_submit() && $this->is_installing() ) {
-				$this->set_plugins_to_activate();
-			} else {
+				$this->set_plugins_to_activate(); // Set the plugins the user wanted to have activated.
+				$this->install_and_activate_missing_plugins(); // Install and activate the plugins requested by the user.
+			} else if ( $this->is_missing_plugins() ) {
 				wp_die( __( 'Something went wrong, please go back and try again.', 'missing-plugins' ) );
 			}
+		}
+
+		private function install_and_activate_missing_plugins() {
+			wp_die( 'Install plugins...' );
 		}
 
 		private function set_nonce_vars() {
@@ -103,6 +115,14 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 			$this->wp_nonce_action = 'wp_missing_plugins_nonce_action';
 		}
 
+		/**
+		 * Checks all the things when submitting the form that it's secure
+		 *
+		 * Checks the user and the form nonce.
+		 *
+		 * @return boolean False if not, true if all the things check out
+		 * @since  1.0
+		 */
 		private function is_secure_submit() {
 			if ( ! current_user_can( 'administrator' ) && ( ! isset( $_REQUEST['username'] ) || ! isset( $_REQUEST['password'] ) ) ) {
 				return false; // We need at least your username and password if you're not logged in as an administrator.
@@ -126,6 +146,10 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 				return false; // If password does not check out.
 			}
 
+			if ( ! isset( $_REQUEST[ $this->form_nonce_name ] ) ) {
+				return false; // The nonce was not even set!
+			}
+
 			// Get the nonce.
 			$nonce = wp_verify_nonce( $_REQUEST[ $this->form_nonce_name ], $this->wp_nonce_action );
 
@@ -138,6 +162,13 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 
 		/**
 		 * Cross checks the submitted plugins to activate with the plugins active, initially, in the database.
+		 *
+		 * If a plugin submitted via the form is not in the database, it's possible
+		 * a plugin was added to the form in hopes of activating it from the outside.
+		 *
+		 * This checks with the database active plugins to ensure everything submitted
+		 * via the form are plugins originally in the database, and dies if one is
+		 * not found.
 		 *
 		 * @param  array $plugins_to_activate Plugins submitted by the user to activate.
 		 * @return boolean                    False if an injected plugin is found, true if all the requested plugins are in the DB currently.
@@ -154,9 +185,11 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 			return $plugins_to_activate;
 		}
 
+		/**
+		 * Add the plugins the user chose to activate from the form.
+		 */
 		private function set_plugins_to_activate() {
 			$this->plugins_to_activate = $this->cross_check_with_active_plugins( $_REQUEST['plugins_to_activate'] ); // These are the plugins the user chose to install and activate.
-			wp_die( 'Installing plugins...' );
 		}
 
 		/**
@@ -260,7 +293,7 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 		 */
 		private function is_hijack_mode() {
 			// Add define( 'MISSING_PLUGINS_HIJACK', true ) to your wp-config to set this mode.
-			if ( defined( 'MISSING_PLUGINS_HIJACK' ) && MISSING_PLUGINS_HIJACK ) {
+			if ( defined( 'MISSING_PLUGINS_HIJACK' ) && true === MISSING_PLUGINS_HIJACK ) {
 				return true;
 			}
 		}
