@@ -128,6 +128,7 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 				return false; // We need at least your username and password if you're not logged in as an administrator.
 			}
 
+			// Check the user.
 			if ( ! current_user_can( 'administrator' ) ) {
 				$username = $_REQUEST['username'];
 				$password = $_REQUEST['password'];
@@ -146,14 +147,14 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 				return false; // If password does not check out.
 			}
 
+			// Check the nonce.
 			if ( ! isset( $_REQUEST[ $this->form_nonce_name ] ) ) {
 				return false; // The nonce was not even set!
 			}
 
-			// Get the nonce.
 			$nonce = wp_verify_nonce( $_REQUEST[ $this->form_nonce_name ], $this->wp_nonce_action );
 
-			if ( user_can( $user, 'administrator' ) && $nonce ) {
+			if ( $nonce ) {
 				return true; // If the user is an administrator and the nonce checks out.
 			}
 
@@ -187,9 +188,13 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 
 		/**
 		 * Add the plugins the user chose to activate from the form.
+		 *
+		 * Sets to default array() if nothing submitted.
 		 */
 		private function set_plugins_to_activate() {
-			$this->plugins_to_activate = $this->cross_check_with_active_plugins( $_REQUEST['plugins_to_activate'] ); // These are the plugins the user chose to install and activate.
+			if ( isset( $_REQUEST['plugins_to_activate'] ) ) {
+				$this->plugins_to_activate = $this->cross_check_with_active_plugins( $_REQUEST['plugins_to_activate'] ); // These are the plugins the user chose to install and activate.
+			}
 		}
 
 		/**
