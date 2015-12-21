@@ -95,10 +95,6 @@ if ( ! class_exists( 'Missing_Plugins ' ) ) :
 			$this->wp_nonce_action = 'wp_missing_plugins_nonce_action';
 		}
 
-		private function salted_name( $front = 10, $end = 20 ) {
-			return esc_attr( sanitize_title_with_dashes( md5( substr( str_shuffle( wp_salt( 'nonce' ) ), 10, 20 ) ) ) );
-		}
-
 		private function is_secure_submit() {
 			$nonce = wp_verify_nonce( $_REQUEST[ $this->form_nonce_name ], $this->wp_nonce_action );
 
