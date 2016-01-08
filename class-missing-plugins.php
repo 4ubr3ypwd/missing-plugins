@@ -1,6 +1,6 @@
 <?php
 
-if ( ! class_exists( 'Missing_Plugins ' ) ) :
+if ( ! class_exists( 'Missing_Plugins' ) ) :
 	class Missing_Plugins {
 
 		/**
