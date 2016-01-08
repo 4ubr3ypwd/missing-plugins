@@ -107,7 +107,31 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		}
 
 		private function install_and_activate_missing_plugins() {
-			wp_die( 'Install plugins...' );
+			// http://missing-plugins.dev/wp-admin/update.php?action=install-plugin&plugin=wp-super-cache&_wpnonce=7f8552bc8d
+			require_once( ABSPATH . 'wp-admin/update.php' );
+			require_once( ABSPATH . 'wp-admin/includes/file.php' );
+			require_once( ABSPATH . 'wp-admin/includes/plugin-install.php' );
+			require_once( ABSPATH . 'wp-admin/includes/class-wp-upgrader.php' );
+			require_once( ABSPATH . 'wp-admin/includes/misc.php' );
+			require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+			require_once( ABSPATH . 'wp-admin/admin.php' );
+
+			// Sum down the plugin to their slug.
+			foreach ( $this->plugins_to_activate as $plugin_file ) {
+				$plugin_slug = basename( dirname( $plugin_file ) ); // Get the plugin slug for wp.org.
+
+				// Tap the API.
+				$api = plugins_api( 'plugin_information', array(
+					'slug' => $plugin_slug,
+					'fields' => array(
+						'sections' => false
+					)
+				) );
+
+				// Install the plugin.
+				$upgrader = new Plugin_Upgrader();
+				$upgrader->install( $api->download_link );
+			}
 		}
 
 		private function set_nonce_vars() {
