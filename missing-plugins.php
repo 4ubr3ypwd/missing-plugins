@@ -17,11 +17,11 @@ License: GPL2
  * |_|  |_|_/__/__/_|_||_\__, | |_| |_|\_,_\__, |_|_||_/__/
  *                       |___/             |___/
  *
- *	Missing Plugins is a plugin that will help people and developers
- *	that move WordPress sites around. If any active plugins in the database
- *	are missing plugin files in your plugins folder, this plugin will
- *	give you an opportunity to install and activate them before WordPress
- *	disables them automatically.
+ * Missing Plugins is a plugin that will help people and developers
+ * that move WordPress sites around. If any active plugins in the database
+ * are missing plugin files in your plugins folder, this plugin will
+ * give you an opportunity to install and activate them before WordPress
+ * disables them automatically.
  *
  * GNU License
  *
