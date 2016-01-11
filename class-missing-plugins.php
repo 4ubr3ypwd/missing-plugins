@@ -23,7 +23,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		 * The WP_Error's
 		 *
 		 * @var object WP_Error
-		 * @since      1.0
+		 * @since 1.0
 		 */
 		private $error_handler;
 
@@ -31,7 +31,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		 * The URL to the WordPress Plugins Repository
 		 *
 		 * @var string
-		 * @since      1.0
+		 * @since 1.0
 		 */
 		private $wp_org_plugins_url = 'http://plugins.svn.wordpress.org';
 
@@ -39,7 +39,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		 * Plugins that are missing, that aren't in the plugin repo.
 		 *
 		 * @var array
-		 * @since      1.0
+		 * @since 1.0
 		 */
 		private $wp_non_org_plugins = array();
 
@@ -47,7 +47,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		 * The nonce for this instance.
 		 *
 		 * @var boolean
-		 * @since      1.0
+		 * @since 1.0
 		 */
 		private $wp_nonce_action = false;
 
@@ -55,7 +55,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		 * The name for the nonce input.
 		 *
 		 * @var boolean
-		 * @since      1.0
+		 * @since 1.0
 		 */
 		private $form_nonce_name = false;
 
@@ -63,7 +63,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		 * A list of plugins to activate.
 		 *
 		 * @var array
-		 * @since  1.0
+		 * @since 1.0
 		 */
 		private $plugins_to_activate = array();
 
@@ -78,9 +78,9 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		}
 
 		/**
-		 * The very first thing that happens.
+		 * Do all the things.
 		 *
-		 * @return void
+		 * @since 1.0
 		 */
 		public function bootup() {
 			/**
@@ -97,21 +97,47 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 
 			// If we're not in the process of installing plugins and we actually have missing plugins.
 			if ( ! $this->is_installing() && $this->is_missing_plugins() ) {
-				$this->the_wp_die_template(); // Show the form!
+				$this->the_plugin_chooser(); // Show the form!
 			} else if ( $this->is_secure_submit() && $this->is_installing() ) {
 				$this->set_plugins_to_activate(); // Set the plugins the user wanted to have activated.
-				$this->install_and_activate_missing_plugins(); // Install and activate the plugins requested by the user.
+				$this->the_plugin_installer(); // Install and activate the plugins requested by the user.
 			} else if ( $this->is_missing_plugins() ) {
 				wp_die( __( 'Something went wrong, please go back and try again.', 'missing-plugins' ) );
 			}
 		}
 
-		private function install_and_activate_missing_plugins() {
+		/**
+		 * Hide the activate plugin links when installing the plugins.
+		 *
+		 * Added via admin_head filter.
+		 *
+		 * @since  1.0
+		 */
+		public function the_plugin_installing_styles() {
+			?>
+				<style>
+					a[href*="action=activate"] {
+						/*We're hiding the activate plugin link, because missing-plugins will automatically activate it for you.*/
+						margin-left: -99999em;
+					}
+				</style>
+			<?php
+		}
+
+		/**
+		 * Load the plugin installer and install the plugins
+		 *
+		 * @since  1.0
+		 */
+		private function the_plugin_installer() {
+			// We need these files.
 			require_once( ABSPATH . 'wp-admin/update.php' );
 			require_once( ABSPATH . 'wp-admin/includes/plugin-install.php' );
 			require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
 			require_once( ABSPATH . 'wp-admin/includes/admin.php' );
 
+			// The theme header.
+			add_action( 'admin_head', array( $this, 'the_plugin_installing_styles' ) );
 			require_once( ABSPATH . 'wp-admin/admin-header.php' );
 
 			// Sum down the plugin to their slug.
@@ -126,7 +152,6 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 					)
 				) );
 
-
 				// Install the plugin.
 				$upgrader = new Plugin_Upgrader( new Plugin_Installer_Skin( array(
 					'title'  => __( 'Installing Plugin...', 'missing-plugins' ),
@@ -136,12 +161,17 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 
 				$upgrader->install( $api->download_link ); // Download and install the plugin.
 				activate_plugin( $plugin_slug, false, false, true ); // Activate the plugin.
-
 			}
 
+			// The theme footer.
 			require_once( ABSPATH . 'wp-admin/admin-footer.php' );
 		}
 
+		/**
+		 * Set the nonce names, instead of wp_nonce.
+		 *
+		 * @since  1.0
+		 */
 		private function set_nonce_vars() {
 			$this->form_nonce_name = 'wp_missing_plugins_nonce';
 			$this->wp_nonce_action = 'wp_missing_plugins_nonce_action';
@@ -222,6 +252,8 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		 * Add the plugins the user chose to activate from the form.
 		 *
 		 * Sets to default array() if nothing submitted.
+		 *
+		 * @since 1.0
 		 */
 		private function set_plugins_to_activate() {
 			if ( isset( $_REQUEST['plugins_to_activate'] ) ) {
@@ -262,7 +294,6 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		/**
 		 * Check for missing plugins.
 		 *
-		 * @return void
 		 * @since  1.0
 		 */
 		private function set_missing_plugins() {
@@ -276,7 +307,6 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		/**
 		 * Filter our plugins that aren't on the WordPress.org repo.
 		 *
-		 * @return  void
 		 * @since   1.0
 		 */
 		private function filter_out_non_wp_org_plugins() {
@@ -309,6 +339,11 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 			}
 		}
 
+		/**
+		 * Check if the user is an administrative user already.
+		 *
+		 * @return boolean True if so, false if not.
+		 */
 		private function is_admin_user() {
 			if ( is_user_logged_in() && current_user_can( 'manage_options' ) ) {
 				return true;
@@ -338,10 +373,9 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		/**
 		 * Ask the users which plugins (missing files) they want to install.
 		 *
-		 * @return void
 		 * @since 1.0
 		 */
-		private function the_wp_die_template() {
+		private function the_plugin_chooser() {
 
 			$title = __( 'You have missing plugin files.', 'missing-plugins' );
 
@@ -436,7 +470,6 @@ else:
 	/**
 	 * Shows an error in the Admin when there is some kind of conflict.
 	 *
-	 * @return void
 	 * @since  1.0
 	 */
 	function missing_plugins_class_exists() {
