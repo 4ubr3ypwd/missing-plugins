@@ -112,6 +112,8 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 			require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
 			require_once( ABSPATH . 'wp-admin/includes/admin.php' );
 
+			require_once( ABSPATH . 'wp-admin/admin-header.php' );
+
 			// Sum down the plugin to their slug.
 			foreach ( $this->plugins_to_activate as $plugin_file ) {
 				$plugin_slug = basename( dirname( $plugin_file ) ); // Get the plugin slug for wp.org.
@@ -124,7 +126,6 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 					)
 				) );
 
-				require_once( ABSPATH . 'wp-admin/admin-header.php' );
 
 				// Install the plugin.
 				$upgrader = new Plugin_Upgrader( new Plugin_Installer_Skin( array(
@@ -136,8 +137,9 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 				$upgrader->install( $api->download_link ); // Download and install the plugin.
 				activate_plugin( $plugin_slug, false, false, true ); // Activate the plugin.
 
-				require_once( ABSPATH . 'wp-admin/admin-footer.php' );
 			}
+
+			require_once( ABSPATH . 'wp-admin/admin-footer.php' );
 		}
 
 		private function set_nonce_vars() {
