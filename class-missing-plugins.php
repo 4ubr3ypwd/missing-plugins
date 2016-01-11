@@ -74,7 +74,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		 * @since 1.0
 		 */
 		public function __construct( $args = array() ) {
-			add_action( 'init', array( $this, 'bootup' ) );
+			add_action( 'admin_init', array( $this, 'bootup' ) );
 		}
 
 		/**
@@ -107,14 +107,10 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		}
 
 		private function install_and_activate_missing_plugins() {
-			// http://missing-plugins.dev/wp-admin/update.php?action=install-plugin&plugin=wp-super-cache&_wpnonce=7f8552bc8d
 			require_once( ABSPATH . 'wp-admin/update.php' );
-			require_once( ABSPATH . 'wp-admin/includes/file.php' );
 			require_once( ABSPATH . 'wp-admin/includes/plugin-install.php' );
-			require_once( ABSPATH . 'wp-admin/includes/class-wp-upgrader.php' );
-			require_once( ABSPATH . 'wp-admin/includes/misc.php' );
 			require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
-			require_once( ABSPATH . 'wp-admin/admin.php' );
+			require_once( ABSPATH . 'wp-admin/includes/admin.php' );
 
 			// Sum down the plugin to their slug.
 			foreach ( $this->plugins_to_activate as $plugin_file ) {
@@ -128,9 +124,19 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 					)
 				) );
 
+				require_once( ABSPATH . 'wp-admin/admin-header.php' );
+
 				// Install the plugin.
-				$upgrader = new Plugin_Upgrader();
-				$upgrader->install( $api->download_link );
+				$upgrader = new Plugin_Upgrader( new Plugin_Installer_Skin( array(
+					'title'  => __( 'Installing Plugin...', 'missing-plugins' ),
+					'plugin' => $plugin_slug,
+					'api'    => $api,
+				) ) );
+
+				$upgrader->install( $api->download_link ); // Download and install the plugin.
+				activate_plugin( $plugin_slug, false, false, true ); // Activate the plugin.
+
+				require_once( ABSPATH . 'wp-admin/admin-footer.php' );
 			}
 		}
 
