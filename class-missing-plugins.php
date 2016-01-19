@@ -2,7 +2,6 @@
 
 if ( ! class_exists( 'Missing_Plugins' ) ) :
 	class Missing_Plugins {
-
 		/**
 		 * The active plugins when this plugin loads.
 		 *
@@ -70,21 +69,19 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		private $plugins_to_activate = array();
 
 		/**
+		 * The title to show for wp_die.
+		 *
+		 * @var string
+		 * @since  1.0
+		 */
+		private $title = '';
+
+		/**
 		 * Tap into WordPress.
 		 *
 		 * @since  1.0
 		 */
 		public function __construct() {
-			add_action( 'admin_init', array( $this, 'backend' ) );
-			add_action( 'template_redirect', array( $this, 'frontend' ) );
-		}
-
-		/**
-		 * Discover if we need to run.
-		 *
-		 * @since  1.0
-		 */
-		private function init() {
 			/**
 			 * Set define( 'SKIP_MISSING_PLUGINS', true ) to skip loading this plugin.
 			 */
@@ -92,6 +89,18 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 				return; // Don't load this plugin, skip loading it.
 			}
 
+			$this->title = __( 'You have missing plugin files.', 'missing-plugins' ); // Set the title for frontend and backend notices.
+
+			add_action( 'admin_init', array( $this, 'backend' ) ); // Load this when the backend (wp-admin) is loaded and plugins are missing.
+			add_action( 'template_redirect', array( $this, 'frontend' ) ); // Re-direct the frontend to the backend (wp-admin) when plugins are missing.
+		}
+
+		/**
+		 * Discover if we need to run.
+		 *
+		 * @since  1.0
+		 */
+		private function discover_missing_plugins() {
 			$this->set_active_plugins(); // Store the active plugins into an array from DB.
 			$this->set_missing_plugins(); // Go through the active plugins and find out which one's don't have local files.
 			$this->filter_out_non_wp_org_plugins(); // We can only install/activate wp.org plugins, so filter out non-wp.org plugins.
@@ -105,35 +114,60 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		 * @since  1.0
 		 */
 		public function frontend() {
-			$this->init();
+			if ( $this->is_login_page() ) {
+				return false; // Don't load this stuff on the login page.
+			}
+
+			$this->discover_missing_plugins();
 
 			if ( is_admin() || $this->is_login_page() ) {
-				return; // No need to re-direct.
+				return; // No need to re-direct, probably login page or the chooser.
+			} elseif ( $this->is_missing_plugins() && current_user_can( 'administrator' ) ) {
+				wp_redirect( admin_url() ); // Goto wp-admin if the user is an administrator (just go directly to the chooser).
 			} elseif ( $this->is_missing_plugins() ) {
-				wp_redirect( admin_url() );
+				$this->frontend_notice(); // If not an administrator, show the frontend notice, will ask for login when going to wp-admin.
 			}
 		}
 
 		/**
-		 * Do all the things.
+		 * The notice we show on the frontend.
+		 *
+		 * @since 1.0
+		 */
+		private function frontend_notice() {
+			ob_start(); ?>
+
+			<h2><?php echo $this->title; ?></h2>
+
+			<p><?php echo sprintf( __( 'You have active plugins in the database that have files missing, please <a href="%s">login</a> as an administrator so we can show you what plugins those are and give you an opportunity to install them.', 'missing-plugins' ), admin_url() ); ?></p>
+
+			<?php $output = ob_get_clean();
+
+			// Die
+			wp_die( $output, $this->title, array() );
+		}
+
+		/**
+		 * Load the plugin.
 		 *
 		 * @since 1.0
 		 */
 		public function backend() {
-			$this->init(); // Setup.
+			if ( $this->is_login_page() ) {
+				return false; // Don't load this stuff on the login page.
+			}
+
+			$this->discover_missing_plugins();
 
 			// If we're not in the process of installing plugins and we actually have missing plugins.
 			if ( ! $this->is_installing() && $this->is_missing_plugins() ) {
 				$this->the_plugin_chooser(); // Show the form!
 			} else if ( $this->is_installing() && $this->is_secure() ) {
-				//wp_die( $this->is_installing() . " " . $this->is_secure() );
 				$this->set_plugins_to_activate(); // Set the plugins the user wanted to have activated.
 				$this->the_plugin_installer(); // Install and activate the plugins requested by the user.
 			} else if ( $this->is_missing_plugins() ) {
 				wp_die( __( 'Something went wrong, please go back and try again.', 'missing-plugins' ) );
 			}
-
-			// Load the site.
 		}
 
 		/**
@@ -172,6 +206,10 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		 * @since  1.0
 		 */
 		private function the_plugin_installer() {
+			if ( ! current_user_can( 'administrator' ) ) {
+				return; // Never install plugins unless the user is an administrator.
+			}
+
 			// We need these files.
 			require_once( ABSPATH . 'wp-admin/update.php' );
 			require_once( ABSPATH . 'wp-admin/includes/plugin-install.php' );
@@ -218,26 +256,9 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		 * @since  1.0
 		 */
 		private function is_secure() {
-			if ( ! current_user_can( 'administrator' ) && ( ! isset( $_REQUEST['username'] ) || ! isset( $_REQUEST['password'] ) ) ) {
-				return false; // We need at least your username and password if you're not logged in as an administrator.
-			}
-
 			// Check the user.
 			if ( ! current_user_can( 'administrator' ) ) {
-				// Get the username and password.
-				$username = $_REQUEST['username'];
-				$password = $_REQUEST['password'];
-
-				// Check creds.
-				$user = wp_signon( array(
-					'user_login' => $username,
-					'user_password' => $password,
-					'remember' => true,
-				), false );
-
-				if ( is_wp_error( $user ) ) {
-					return false; // The user creds did not check out, bail.
-				}
+				return false; // The user has to be an administrator.
 			}
 
 			// Check the nonce was sent.
@@ -250,10 +271,10 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 
 			// Nonce is good.
 			if ( $nonce ) {
-				return true; // The nonce has been checked.
+				return true; // The nonce was good.
 			}
 
-			return false;
+			return false; // The nonce was bad.
 		}
 
 		/**
@@ -373,19 +394,6 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		}
 
 		/**
-		 * Check if the user is an administrative user already.
-		 *
-		 * @return boolean True if so, false if not.
-		 */
-		private function is_admin_user() {
-			if ( is_user_logged_in() && current_user_can( 'manage_options' ) ) {
-				return true;
-			}
-
-			return false;
-		}
-
-		/**
 		 * Checks if MISSING_PLUGINS_HIJACK is set in wp-config.php
 		 *
 		 * This is an easy way to add a "hijecked" plugin to the list of
@@ -409,8 +417,9 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		 * @since 1.0
 		 */
 		private function the_plugin_chooser() {
-
-			$title = __( 'You have missing plugin files.', 'missing-plugins' );
+			if ( ! current_user_can( 'administrator' ) ) {
+				return; // Don't show the chooser unless the user is an administrator.
+			}
 
 			ob_start(); ?>
 
@@ -457,7 +466,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 
 				<form action="" method="post">
 
-					<h2><?php echo $title; ?></h2>
+					<h2><?php echo $this->title; ?></h2>
 
 					<p><?php echo sprintf( __( 'The following plugins were active in the database, but their files are missing in your <code>%s</code> folder. If you would like us to install and activate them, please select the ones you need and continue.', 'missing-plugins' ), wp_unslash( basename( WP_PLUGIN_DIR ) ) ); ?></p>
 
@@ -477,15 +486,6 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 						<?php endif; ?>
 					</table>
 
-					<?php if ( ! $this->is_admin_user() ) : ?>
-						<p><?php _e( 'You must login as an administrative user to continue:', 'missing-plugins' ); ?></p>
-
-						<div class="login-form">
-							<p><label for="username"><?php _e( 'Username:', 'missing-plugins' ); ?></label> <input type="text" name="username"></p>
-							<p><label for="password"><?php _e( 'Password:', 'missing-plugins' ); ?></label> <input type="password" name="password"></p>
-						</div>
-					<?php endif; ?>
-
 					<p><input type="submit" value="<?php _e( 'Continue', 'missing-plugins' ); ?>" /></p>
 
 					<?php wp_nonce_field( $this->wp_nonce_action, $this->form_nonce_name ); ?>
@@ -495,11 +495,10 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 			<?php $output = ob_get_clean();
 
 			// Die
-			wp_die( $output, $title, array() );
+			wp_die( $output, $this->title, array() );
 		}
 	}
 else:
-
 	/**
 	 * Shows an error in the Admin when there is some kind of conflict.
 	 *
