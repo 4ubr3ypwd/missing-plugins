@@ -28,7 +28,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		private $error_handler;
 
 		/**
-		 * The URL to the WordPress Plugins Repository
+		 * The URL to the WordPress Plugins Repository.
 		 *
 		 * @var string
 		 * @since 1.0
@@ -37,6 +37,8 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 
 		/**
 		 * Plugins that are missing, that aren't in the plugin repo.
+		 *
+		 * TODO: We will, at a later time, find a way to install these some other way.
 		 *
 		 * @var array
 		 * @since 1.0
@@ -49,7 +51,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		 * @var boolean
 		 * @since 1.0
 		 */
-		private $wp_nonce_action = false;
+		private $wp_nonce_action = 'wp_missing_plugins_nonce_action';
 
 		/**
 		 * The name for the nonce input.
@@ -57,10 +59,10 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		 * @var boolean
 		 * @since 1.0
 		 */
-		private $form_nonce_name = false;
+		private $form_nonce_name = 'wp_missing_plugins_nonce';
 
 		/**
-		 * A list of plugins to activate.
+		 * The list of plugins to eventually activate.
 		 *
 		 * @var array
 		 * @since 1.0
@@ -68,21 +70,21 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		private $plugins_to_activate = array();
 
 		/**
-		 * Construct.
+		 * Tap into WordPress.
 		 *
-		 * @param array $args Arguments
-		 * @since 1.0
+		 * @since  1.0
 		 */
-		public function __construct( $args = array() ) {
-			add_action( 'admin_init', array( $this, 'bootup' ) );
+		public function __construct() {
+			add_action( 'admin_init', array( $this, 'backend' ) );
+			add_action( 'template_redirect', array( $this, 'frontend' ) );
 		}
 
 		/**
-		 * Do all the things.
+		 * Discover if we need to run.
 		 *
-		 * @since 1.0
+		 * @since  1.0
 		 */
-		public function bootup() {
+		private function init() {
 			/**
 			 * Set define( 'SKIP_MISSING_PLUGINS', true ) to skip loading this plugin.
 			 */
@@ -90,26 +92,66 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 				return; // Don't load this plugin, skip loading it.
 			}
 
-			$this->set_nonce_vars(); // Set the nonce name and action.
 			$this->set_active_plugins(); // Store the active plugins into an array from DB.
 			$this->set_missing_plugins(); // Go through the active plugins and find out which one's don't have local files.
 			$this->filter_out_non_wp_org_plugins(); // We can only install/activate wp.org plugins, so filter out non-wp.org plugins.
+		}
+
+		/**
+		 * Redirect to wp-admin if there are plugins missing.
+		 *
+		 * Also forces login of admin user.
+		 *
+		 * @since  1.0
+		 */
+		public function frontend() {
+			$this->init();
+
+			if ( is_admin() || $this->is_login_page() ) {
+				return; // No need to re-direct.
+			} elseif ( $this->is_missing_plugins() ) {
+				wp_redirect( admin_url() );
+			}
+		}
+
+		/**
+		 * Do all the things.
+		 *
+		 * @since 1.0
+		 */
+		public function backend() {
+			$this->init(); // Setup.
 
 			// If we're not in the process of installing plugins and we actually have missing plugins.
 			if ( ! $this->is_installing() && $this->is_missing_plugins() ) {
 				$this->the_plugin_chooser(); // Show the form!
-			} else if ( $this->is_secure_submit() && $this->is_installing() ) {
+			} else if ( $this->is_installing() && $this->is_secure() ) {
+				//wp_die( $this->is_installing() . " " . $this->is_secure() );
 				$this->set_plugins_to_activate(); // Set the plugins the user wanted to have activated.
 				$this->the_plugin_installer(); // Install and activate the plugins requested by the user.
 			} else if ( $this->is_missing_plugins() ) {
 				wp_die( __( 'Something went wrong, please go back and try again.', 'missing-plugins' ) );
 			}
+
+			// Load the site.
+		}
+
+		/**
+		 * Determine if we are on the login pages.
+		 *
+		 * Used mainly to get the user to the wp-admin so we can install plugins.
+		 * If the user is on the login page, let's give them an opportunity to login.
+		 *
+		 * @return boolean True if we are, false if not.
+		 */
+		private function is_login_page() {
+			return in_array( $GLOBALS['pagenow'], array( 'wp-login.php', ) );
 		}
 
 		/**
 		 * Hide the activate plugin links when installing the plugins.
 		 *
-		 * Added via admin_head filter.
+		 * Added via admin_head filter in `self::the_plugin_installer()`.
 		 *
 		 * @since  1.0
 		 */
@@ -125,7 +167,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		}
 
 		/**
-		 * Load the plugin installer and install the plugins
+		 * Load the plugin installer and install the plugins.
 		 *
 		 * @since  1.0
 		 */
@@ -168,56 +210,47 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		}
 
 		/**
-		 * Set the nonce names, instead of wp_nonce.
-		 *
-		 * @since  1.0
-		 */
-		private function set_nonce_vars() {
-			$this->form_nonce_name = 'wp_missing_plugins_nonce';
-			$this->wp_nonce_action = 'wp_missing_plugins_nonce_action';
-		}
-
-		/**
-		 * Checks all the things when submitting the form that it's secure
+		 * Checks all the things when submitting the form that it's secure.
 		 *
 		 * Checks the user and the form nonce.
 		 *
-		 * @return boolean False if not, true if all the things check out
+		 * @return boolean False if not, true if all the things check out.
 		 * @since  1.0
 		 */
-		private function is_secure_submit() {
+		private function is_secure() {
 			if ( ! current_user_can( 'administrator' ) && ( ! isset( $_REQUEST['username'] ) || ! isset( $_REQUEST['password'] ) ) ) {
 				return false; // We need at least your username and password if you're not logged in as an administrator.
 			}
 
 			// Check the user.
 			if ( ! current_user_can( 'administrator' ) ) {
+				// Get the username and password.
 				$username = $_REQUEST['username'];
 				$password = $_REQUEST['password'];
-				$user = get_user_by( 'login', $username );
 
-				if ( ! $user ) {
-					return false; // If the user is not in the db.
+				// Check creds.
+				$user = wp_signon( array(
+					'user_login' => $username,
+					'user_password' => $password,
+					'remember' => true,
+				), false );
+
+				if ( is_wp_error( $user ) ) {
+					return false; // The user creds did not check out, bail.
 				}
-
-				$user_okay = wp_check_password( $password, $user->data->user_pass, $user->ID );
-			} else {
-				$user_okay = true; // The current user is an administrator.
 			}
 
-			if ( ! $user_okay ) {
-				return false; // If password does not check out.
-			}
-
-			// Check the nonce.
+			// Check the nonce was sent.
 			if ( ! isset( $_REQUEST[ $this->form_nonce_name ] ) ) {
 				return false; // The nonce was not even set!
 			}
 
+			// Verify nonce.
 			$nonce = wp_verify_nonce( $_REQUEST[ $this->form_nonce_name ], $this->wp_nonce_action );
 
+			// Nonce is good.
 			if ( $nonce ) {
-				return true; // If the user is an administrator and the nonce checks out.
+				return true; // The nonce has been checked.
 			}
 
 			return false;
@@ -278,7 +311,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		}
 
 		/**
-		 * Returns true if there are missing plugins.
+		 * Find out if we even have missing plugins to activate.
 		 *
 		 * @return boolean True if there are missing plugin, false if none were found.
 		 * @since  1.0
@@ -445,7 +478,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 					</table>
 
 					<?php if ( ! $this->is_admin_user() ) : ?>
-						<p><?php _e( 'You must provide login details for an administrative user to continue:', 'missing-plugins' ); ?></p>
+						<p><?php _e( 'You must login as an administrative user to continue:', 'missing-plugins' ); ?></p>
 
 						<div class="login-form">
 							<p><label for="username"><?php _e( 'Username:', 'missing-plugins' ); ?></label> <input type="text" name="username"></p>
