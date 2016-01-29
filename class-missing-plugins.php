@@ -90,7 +90,6 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 			}
 
 			$this->title = __( 'You have missing plugin files.', 'missing-plugins' ); // Set the title for frontend and backend notices.
-
 			add_action( 'admin_init', array( $this, 'backend' ) ); // Load this when the backend (wp-admin) is loaded and plugins are missing.
 			add_action( 'template_redirect', array( $this, 'frontend' ) ); // Re-direct the frontend to the backend (wp-admin) when plugins are missing.
 		}
@@ -136,15 +135,11 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		 */
 		private function frontend_notice() {
 			ob_start(); ?>
-
 			<h2><?php echo $this->title; ?></h2>
-
-			<p><?php echo sprintf( __( 'You have active plugins in the database that have files missing, please <a href="%s">login</a> as an administrator so we can show you what plugins those are and give you an opportunity to install them.', 'missing-plugins' ), admin_url() ); ?></p>
-
+				<p><?php echo sprintf( __( 'You have active plugins in the database that have files missing, please <a href="%s">login</a> as an administrator so we can show you what plugins those are and give you an opportunity to install them.', 'missing-plugins' ), admin_url() ); ?></p>
 			<?php $output = ob_get_clean();
 
-			// Die
-			wp_die( $output, $this->title, array() );
+			wp_die( $output, $this->title, array() ); // Die.
 		}
 
 		/**
@@ -168,6 +163,22 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 			} else if ( $this->is_missing_plugins() ) {
 				wp_die( __( 'Something went wrong, please go back and try again.', 'missing-plugins' ) );
 			}
+		}
+
+		/**
+		 * Sanitizes and checks form submit before returning form results.
+		 *
+		 * @return array The plugins to activate submitted by the plugin chooser.
+		 * @since  1.0
+		 */
+		private function form_submitted_plugins() {
+			$form_results = $_REQUEST['plugins_to_activate'];
+
+			if ( ! is_array( $form_results ) ) {
+				wp_die( __( 'Invalid data from form, please go back and try again.', 'missing-plugins' ) );
+			}
+
+			return $form_results;
 		}
 
 		/**
@@ -310,8 +321,8 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		 * @since 1.0
 		 */
 		private function set_plugins_to_activate() {
-			if ( isset( $_REQUEST['plugins_to_activate'] ) ) {
-				$this->plugins_to_activate = $this->cross_check_with_active_plugins( $_REQUEST['plugins_to_activate'] ); // These are the plugins the user chose to install and activate.
+			if ( $this->form_submitted_plugins() ) {
+				$this->plugins_to_activate = $this->cross_check_with_active_plugins( $this->form_submitted_plugins() ); // These are the plugins the user chose to install and activate.
 			}
 		}
 
