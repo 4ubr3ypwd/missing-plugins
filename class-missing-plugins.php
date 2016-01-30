@@ -8,7 +8,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		 * @var array
 		 * @since 1.0
 		 */
-		private $active_plugins = array();
+		private $active_plugins_at_runtime = array();
 
 		/**
 		 * The plugins that are activated, but don't have files.
@@ -61,12 +61,12 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		private $form_nonce_name = 'wp_missing_plugins_nonce';
 
 		/**
-		 * The list of plugins to eventually activate.
+		 * The list of plugins to eventually install.
 		 *
 		 * @var array
 		 * @since 1.0
 		 */
-		private $plugins_to_activate = array();
+		private $safe_plugins_to_install = array();
 
 		/**
 		 * The title to show for wp_die.
@@ -100,9 +100,22 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		 * @since  1.0
 		 */
 		private function discover_missing_plugins() {
-			$this->set_active_plugins(); // Store the active plugins into an array from DB.
+			$this->set_active_plugins_at_runtime(); // Store the active plugins into an array from DB.
 			$this->set_missing_plugins(); // Go through the active plugins and find out which one's don't have local files.
-			$this->filter_out_non_wp_org_plugins(); // We can only install/activate wp.org plugins, so filter out non-wp.org plugins.
+			$this->set_plugins_to_activate(); // Set the plugins the user wanted to have activated.
+			$this->filter_out_non_wp_org_plugins(); // We can only install/activate wp.org plugins, so filter out non-wp.org plugins (soon to enable zip upload for these).
+			$this->set_plugins_user_chose_not_to_activate(); // The plugins the user chose not to activate, we need to save them so we don't try and install them again.
+		}
+
+		/**
+		 * Save the plugins that were skipped in the plugin chooser.
+		 */
+		private function set_plugins_user_chose_not_to_activate() {
+			if ( sizeof( $this->form_submitted_plugins() ) === 0 ) {
+				return;
+			}
+
+			update_option( 'missing_plugins_skip', array_diff( $this->missing_plugins, $this->form_submitted_plugins() ) );
 		}
 
 		/**
@@ -158,7 +171,6 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 			if ( ! $this->is_installing() && $this->is_missing_plugins() ) {
 				$this->the_plugin_chooser(); // Show the form!
 			} else if ( $this->is_installing() && $this->is_secure() ) {
-				$this->set_plugins_to_activate(); // Set the plugins the user wanted to have activated.
 				$this->the_plugin_installer(); // Install and activate the plugins requested by the user.
 			} else if ( $this->is_missing_plugins() ) {
 				wp_die( __( 'Something went wrong, please go back and try again.', 'missing-plugins' ) );
@@ -172,6 +184,10 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		 * @since  1.0
 		 */
 		private function form_submitted_plugins() {
+			if ( ! isset( $_REQUEST['plugins_to_activate'] ) ) {
+				return array();
+			}
+
 			$form_results = $_REQUEST['plugins_to_activate'];
 
 			if ( ! is_array( $form_results ) ) {
@@ -232,7 +248,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 			require_once( ABSPATH . 'wp-admin/admin-header.php' );
 
 			// Sum down the plugin to their slug.
-			foreach ( $this->plugins_to_activate as $plugin_file ) {
+			foreach ( $this->safe_plugins_to_install as $plugin_file ) {
 				$plugin_slug = basename( dirname( $plugin_file ) ); // Get the plugin slug for wp.org.
 
 				// Tap the API.
@@ -304,7 +320,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		 */
 		private function cross_check_with_active_plugins( $plugins_to_activate ) {
 			foreach( $plugins_to_activate as $plugin_to_activate ) {
-				if ( ! in_array( $plugin_to_activate, $this->active_plugins ) ) {
+				if ( ! in_array( $plugin_to_activate, $this->active_plugins_at_runtime ) ) {
 					// Die if a plugin is not in the database! Possible hijack!
 					wp_die( sprintf( __( "Sorry, but %s is not currently in the database and cannot be installed. It's possible that a hijacking script added this plugin to your form when you submitted it, in an attempt to add an outside plugin.", 'missing-plugins' ), "<code>$plugin_to_activate</code>" ) );
 				}
@@ -322,7 +338,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		 */
 		private function set_plugins_to_activate() {
 			if ( $this->form_submitted_plugins() ) {
-				$this->plugins_to_activate = $this->cross_check_with_active_plugins( $this->form_submitted_plugins() ); // These are the plugins the user chose to install and activate.
+				$this->safe_plugins_to_install = $this->cross_check_with_active_plugins( $this->form_submitted_plugins() ); // These are the plugins the user chose to install and activate.
 			}
 		}
 
@@ -362,7 +378,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		 * @since  1.0
 		 */
 		private function set_missing_plugins() {
-			foreach ( $this->active_plugins as $plugin_file ) {
+			foreach ( $this->active_plugins_at_runtime as $plugin_file ) {
 				if ( ! file_exists( $plugin_file ) ) {
 					$this->missing_plugins[] = $plugin_file;
 				}
@@ -395,12 +411,12 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		 *
 		 * @since 1.0
 		 */
-		private function set_active_plugins() {
+		private function set_active_plugins_at_runtime() {
 			$active_plugins = get_option( 'active_plugins' ); // The active plugins in the DB
 
 			// Add each one with their direct path included.
 			foreach ( $active_plugins as $key => $plugin_file ) {
-				$this->active_plugins[ $plugin_file ] = trailingslashit( WP_PLUGIN_DIR ) . $plugin_file;
+				$this->active_plugins_at_runtime[ $plugin_file ] = trailingslashit( WP_PLUGIN_DIR ) . $plugin_file;
 			}
 		}
 
