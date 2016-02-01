@@ -95,16 +95,13 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		}
 
 		/**
-		 * Discover if we need to run.
+		 * Discover what plugins we need to activate.
 		 *
 		 * @since  1.0
 		 */
 		private function discover_missing_plugins() {
 			$this->set_active_plugins_at_runtime(); // Store the active plugins into an array from DB.
-			$this->set_missing_plugins(); // Go through the active plugins and find out which one's don't have local files.
-			$this->set_plugins_to_activate_at_submit(); // Set the plugins the user wanted to have activated.
-			$this->filter_out_non_wp_org_plugins(); // We can only install/activate wp.org plugins, so filter out non-wp.org plugins (soon to enable zip upload for these).
-			$this->forget_plugins_on_submit(); // The plugins the user chose not to activate, we need to save them so we don't try and install them again.
+			$this->set_missing_plugins_at_runtime(); // Go through the active plugins and find out which one's don't have local files for.
 		}
 
 		/**
@@ -130,6 +127,35 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		}
 
 		/**
+		 * Load the plugin.
+		 *
+		 * @since 1.0
+		 */
+		public function backend() {
+			if ( $this->is_login_page() ) {
+				return false; // Don't load this stuff on the login page.
+			}
+
+			$this->discover_missing_plugins(); // What plugins should we activate?
+
+			// Plugin chooser.
+			if ( ! $this->is_installing() && $this->is_missing_plugins() ) {
+				$this->the_plugin_chooser(); // Show the form!
+
+			// Install Plugins.
+			} else if ( $this->is_installing() && $this->is_secure() ) {
+				$this->forget_plugins_on_submit(); // The plugins the user chose not to activate, we need to save them so we don't try and install them again.
+				$this->set_safe_missing_plugins(); // Crosscheck plugins for any security issues.
+				$this->filter_out_non_wp_org_plugins(); // We can only install/activate wp.org plugins, so filter out non-wp.org plugins (soon to enable zip upload for these).
+				$this->the_plugin_installer(); // Install and activate the plugins requested by the user.
+
+			// Everything else.
+			} else if ( $this->is_missing_plugins() ) {
+				wp_die( __( 'Something went wrong, please go back and try again.', 'missing-plugins' ) );
+			}
+		}
+
+		/**
 		 * Redirect to wp-admin if there are plugins missing.
 		 *
 		 * Also forces login of admin user.
@@ -141,11 +167,11 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 				return false; // Don't load this stuff on the login page.
 			}
 
-			$this->discover_missing_plugins();
+			$this->discover_missing_plugins(); // Discover missing plugins.
 
 			if ( is_admin() || $this->is_login_page() ) {
 				return; // No need to re-direct, probably login page or the chooser.
-			} elseif ( $this->is_missing_plugins() && current_user_can( 'administrator' ) ) {
+			} elseif ( current_user_can( 'administrator' ) ) {
 				wp_redirect( admin_url() ); // Goto wp-admin if the user is an administrator (just go directly to the chooser).
 			} elseif ( $this->is_missing_plugins() ) {
 				$this->frontend_notice(); // If not an administrator, show the frontend notice, will ask for login when going to wp-admin.
@@ -164,28 +190,6 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 			<?php $output = ob_get_clean();
 
 			wp_die( $output, $this->title, array() ); // Die.
-		}
-
-		/**
-		 * Load the plugin.
-		 *
-		 * @since 1.0
-		 */
-		public function backend() {
-			if ( $this->is_login_page() ) {
-				return false; // Don't load this stuff on the login page.
-			}
-
-			$this->discover_missing_plugins();
-
-			// If we're not in the process of installing plugins and we actually have missing plugins.
-			if ( ! $this->is_installing() && $this->is_missing_plugins() ) {
-				$this->the_plugin_chooser(); // Show the form!
-			} else if ( $this->is_installing() && $this->is_secure() ) {
-				$this->the_plugin_installer(); // Install and activate the plugins requested by the user.
-			} else if ( $this->is_missing_plugins() ) {
-				wp_die( __( 'Something went wrong, please go back and try again.', 'missing-plugins' ) );
-			}
 		}
 
 		/**
@@ -347,7 +351,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		 *
 		 * @since 1.0
 		 */
-		private function set_plugins_to_activate_at_submit() {
+		private function set_safe_missing_plugins() {
 			if ( $this->form_submitted_plugins() ) {
 				$this->safe_plugins_to_install = $this->cross_check_with_active_plugins( $this->form_submitted_plugins() ); // These are the plugins the user chose to install and activate.
 			}
@@ -403,7 +407,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		 *
 		 * @since  1.0
 		 */
-		private function set_missing_plugins() {
+		private function set_missing_plugins_at_runtime() {
 			foreach ( $this->active_plugins_at_runtime as $plugin_file ) {
 				if ( ! file_exists( $plugin_file ) && ! $this->is_forgotten_plugin( $plugin_file ) ) {
 					$this->missing_plugins[] = $plugin_file;
