@@ -102,20 +102,31 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		private function discover_missing_plugins() {
 			$this->set_active_plugins_at_runtime(); // Store the active plugins into an array from DB.
 			$this->set_missing_plugins(); // Go through the active plugins and find out which one's don't have local files.
-			$this->set_plugins_to_activate(); // Set the plugins the user wanted to have activated.
+			$this->set_plugins_to_activate_at_submit(); // Set the plugins the user wanted to have activated.
 			$this->filter_out_non_wp_org_plugins(); // We can only install/activate wp.org plugins, so filter out non-wp.org plugins (soon to enable zip upload for these).
-			$this->set_plugins_user_chose_not_to_activate(); // The plugins the user chose not to activate, we need to save them so we don't try and install them again.
+			$this->forget_plugins_on_submit(); // The plugins the user chose not to activate, we need to save them so we don't try and install them again.
+		}
+
+		/**
+		 * Get the plugins we should ignore.
+		 *
+		 * @return array The plugins to ignore.
+		 */
+		private function forgotten_plugins() {
+			$forgotten_plugins = get_option( 'missing_plugins_skip', true );
+			return is_array( $forgotten_plugins ) ? $forgotten_plugins : array();
 		}
 
 		/**
 		 * Save the plugins that were skipped in the plugin chooser.
 		 */
-		private function set_plugins_user_chose_not_to_activate() {
+		private function forget_plugins_on_submit() {
 			if ( sizeof( $this->form_submitted_plugins() ) === 0 ) {
 				return;
 			}
 
-			update_option( 'missing_plugins_skip', array_diff( $this->missing_plugins, $this->form_submitted_plugins() ) );
+			$plugins_to_forget = array_diff( $this->missing_plugins, $this->form_submitted_plugins() );
+			update_option( 'missing_plugins_skip', array_merge( $this->forgotten_plugins(), $plugins_to_forget ) );
 		}
 
 		/**
@@ -336,7 +347,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		 *
 		 * @since 1.0
 		 */
-		private function set_plugins_to_activate() {
+		private function set_plugins_to_activate_at_submit() {
 			if ( $this->form_submitted_plugins() ) {
 				$this->safe_plugins_to_install = $this->cross_check_with_active_plugins( $this->form_submitted_plugins() ); // These are the plugins the user chose to install and activate.
 			}
@@ -373,13 +384,28 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		}
 
 		/**
+		 * Is the plugin file a plugin the user has chosen to skip?
+		 *
+		 * @param  string  $plugin_file The plugin file.
+		 * @return boolean              True if it was skipped previously, false if not.
+		 * @since  1.0
+		 */
+		private function is_forgotten_plugin( $plugin_file ) {
+			if ( in_array( $plugin_file, $this->forgotten_plugins() ) ) {
+				return true;
+			}
+
+			return false;
+		}
+
+		/**
 		 * Check for missing plugins.
 		 *
 		 * @since  1.0
 		 */
 		private function set_missing_plugins() {
 			foreach ( $this->active_plugins_at_runtime as $plugin_file ) {
-				if ( ! file_exists( $plugin_file ) ) {
+				if ( ! file_exists( $plugin_file ) && ! $this->is_forgotten_plugin( $plugin_file ) ) {
 					$this->missing_plugins[] = $plugin_file;
 				}
 			}
