@@ -27,5 +27,8 @@ control and re-activating the plugin (and maybe having to re-pull your DB).
 
 ![](http://g.recordit.co/vT5Kadw0Bv.gif)
 
+# Changelog
 
+## 1.0
 
+- Installs plugins that are active in the DB but files don't exist in `plugins` folder
