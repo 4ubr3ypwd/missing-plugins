@@ -27,6 +27,16 @@ control and re-activating the plugin (and maybe having to re-pull your DB).
 
 ![](http://g.recordit.co/vT5Kadw0Bv.gif)
 
+# Only for WordPress.org Plugins
+
+If you have plugins that are not in the WordPress.org repository, think
+Gravity Forms, it will totally skip these. The addition of this feature is planned
+for a future release.
+
+In the case that a non WordPress.org plugin is detected as missing,
+it will be deactivated and you won't get an opportunity to install it with
+Missing Plugins.
+
 # Disabling Missing Plugins
 
 If you have a case where you want to keep Missing Plugins active but disable
