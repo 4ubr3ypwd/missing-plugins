@@ -27,7 +27,7 @@ control and re-activating the plugin (and maybe having to re-pull your DB).
 
 If you have plugins that are not in the WordPress.org repository, think
 Gravity Forms, it will totally skip these. The addition of this feature is planned
-for a future release (See #2).
+for a future release (See [#2](https://github.com/aubreypwd/missing-plugins/issues/2)).
 
 In the case that a non WordPress.org plugin is detected as missing,
 it will be deactivated and you won't get an opportunity to install it with
