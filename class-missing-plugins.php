@@ -1,6 +1,11 @@
 <?php
 
-if ( ! class_exists( 'Missing_Plugins' ) ) :
+if ( ! class_exists( 'Missing_Plugins' ) ) {
+	/**
+	 * Missing Plugins functionality.
+	 *
+	 * @since  1.0
+	 */
 	class Missing_Plugins {
 		/**
 		 * The active plugins when this plugin loads.
@@ -554,8 +559,17 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 			// Die
 			wp_die( $output, $this->title, array() );
 		}
+	} // class Missing_Plugins
+
+	/*
+	 * Launch Missing Plugins.
+	 */
+	if ( ! isset( $missing_plugins ) ) {
+		$missing_plugins = new Missing_Plugins();
 	}
-else:
+
+// class Missing_Plugins exists already.
+} else {
 	/**
 	 * Shows an error in the Admin when there is some kind of conflict.
 	 *
@@ -569,4 +583,4 @@ else:
 		<?php
 	}
 	add_action( 'admin_notices', 'missing_plugins_class_exists' );
-endif;
+}

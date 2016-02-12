@@ -41,12 +41,14 @@ License: GPL2
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+/*
+ * Disable loading Missing Plugins.
+ *
+ * In wp-config.php use `define( 'DISABLE_MISSING_PLUGINS', true );` to disable
+ * this plugin from doing anything.
+ */
 if ( defined( 'DISABLE_MISSING_PLUGINS' ) && DISABLE_MISSING_PLUGINS ) {
-	return; // Disable in wp-config.php using define( 'DISABLE_MISSING_PLUGINS', true );
+	return; // Bail, this site doesn't want to run Missing Plugins.
 }
 
-require_once( 'class-missing-plugins.php' );
-
-if ( class_exists( 'Missing_Plugins' ) && ! isset( $missing_plugins ) ) {
-	$missing_plugins = new Missing_Plugins();
-}
+require_once( 'class-missing-plugins.php' ); // Launch Missing Plugins...
