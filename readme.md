@@ -47,4 +47,4 @@ don't want the site to freeze up if a plugin file is missing.
 
 ### 1.0
 
-- Installs plugins that are active in the DB but files don't exist in `plugins` folder
+- Installs WordPress.org plugins that are active in the DB but files don't exist in `plugins` folder
