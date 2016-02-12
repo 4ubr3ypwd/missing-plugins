@@ -25,7 +25,7 @@ This plugin does that for you and helps save your butt and make things easier fo
 you to keep on coding without the headache of getting that plugin into version
 control and re-activating the plugin (and maybe having to re-pull your DB).
 
-~[](http://g.recordit.co/vT5Kadw0Bv.gif+)
+~[](http://g.recordit.co/vT5Kadw0Bv.gif)
 
 
 
