@@ -45,7 +45,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		private $wp_non_org_plugins = array();
 
 		/**
-		 * The nonce for this instance.
+		 * The nonce name for this instance.
 		 *
 		 * @var boolean
 		 * @since 1.0
@@ -61,7 +61,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		private $form_nonce_name = 'wp_missing_plugins_nonce';
 
 		/**
-		 * The list of plugins to eventually install.
+		 * The list of plugins to eventually install (checked for injected plugins).
 		 *
 		 * @var array
 		 * @since 1.0
@@ -77,7 +77,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) :
 		private $title = '';
 
 		/**
-		 * Tap into WordPress.
+		 * New Instance.
 		 *
 		 * @since  1.0
 		 */

@@ -41,8 +41,9 @@ License: GPL2
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-/**
- */
+if ( defined( 'DISABLE_MISSING_PLUGINS' ) && DISABLE_MISSING_PLUGINS ) {
+	return; // Disable in wp-config.php using define( 'DISABLE_MISSING_PLUGINS', true );
+}
 
 require_once( 'class-missing-plugins.php' );
 
