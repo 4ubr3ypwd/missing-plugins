@@ -5,6 +5,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) {
 	 * Missing Plugins functionality.
 	 *
 	 * @since  1.0.0
+	 * @author aubreypwd
 	 */
 	class Missing_Plugins {
 		/**
@@ -12,6 +13,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) {
 		 *
 		 * @var array
 		 * @since 1.0.0
+		 * @author aubreypwd
 		 */
 		private $active_plugins_at_runtime = array();
 
@@ -20,6 +22,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) {
 		 *
 		 * @var array
 		 * @since 1.0.0
+		 * @author aubreypwd
 		 */
 		private $missing_plugins = array();
 
@@ -28,6 +31,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) {
 		 *
 		 * @var object WP_Error
 		 * @since 1.0.0
+		 * @author aubreypwd
 		 */
 		private $error_handler;
 
@@ -36,6 +40,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) {
 		 *
 		 * @var string
 		 * @since 1.0.0
+		 * @author aubreypwd
 		 */
 		private $wp_org_plugins_url = 'http://plugins.svn.wordpress.org';
 
@@ -46,6 +51,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) {
 		 *
 		 * @var array
 		 * @since 1.0.0
+		 * @author aubreypwd
 		 */
 		private $wp_non_org_plugins = array();
 
@@ -54,6 +60,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) {
 		 *
 		 * @var boolean
 		 * @since 1.0.0
+		 * @author aubreypwd
 		 */
 		private $wp_nonce_action = 'wp_missing_plugins_nonce_action';
 
@@ -62,6 +69,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) {
 		 *
 		 * @var boolean
 		 * @since 1.0.0
+		 * @author aubreypwd
 		 */
 		private $form_nonce_name = 'wp_missing_plugins_nonce';
 
@@ -70,6 +78,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) {
 		 *
 		 * @var array
 		 * @since 1.0.0
+		 * @author aubreypwd
 		 */
 		private $safe_plugins_to_install = array();
 
@@ -78,6 +87,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) {
 		 *
 		 * @var string
 		 * @since  1.0.0
+		 * @author aubreypwd
 		 */
 		private $title = '';
 
@@ -85,6 +95,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) {
 		 * New Instance.
 		 *
 		 * @since  1.0.0
+		 * @author aubreypwd
 		 */
 		public function __construct() {
 			/**
@@ -103,6 +114,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) {
 		 * Discover what plugins we need to activate.
 		 *
 		 * @since  1.0.0
+		 * @author aubreypwd
 		 */
 		private function discover_missing_plugins() {
 			$this->set_active_plugins_at_runtime(); // Store the active plugins into an array from DB.
@@ -135,6 +147,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) {
 		 * Load the plugin.
 		 *
 		 * @since 1.0.0
+		 * @author aubreypwd
 		 */
 		public function backend() {
 			if ( $this->is_login_page() ) {
@@ -166,6 +179,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) {
 		 * Also forces login of admin user.
 		 *
 		 * @since  1.0.0
+		 * @author aubreypwd
 		 */
 		public function frontend() {
 			if ( $this->is_login_page() ) {
@@ -187,6 +201,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) {
 		 * The notice we show on the frontend.
 		 *
 		 * @since 1.0.0
+		 * @author aubreypwd
 		 */
 		private function frontend_notice() {
 			ob_start(); ?>
@@ -202,6 +217,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) {
 		 *
 		 * @return array The plugins to activate submitted by the plugin chooser.
 		 * @since  1.0.0
+		 * @author aubreypwd
 		 */
 		private function form_submitted_plugins() {
 			if ( ! isset( $_REQUEST['plugins_to_activate'] ) ) {
@@ -235,6 +251,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) {
 		 * Added via admin_head filter in `self::the_plugin_installer()`.
 		 *
 		 * @since  1.0.0
+		 * @author aubreypwd
 		 */
 		public function the_plugin_installing_styles() {
 			?>
@@ -251,6 +268,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) {
 		 * Load the plugin installer and install the plugins.
 		 *
 		 * @since  1.0.0
+		 * @author aubreypwd
 		 */
 		private function the_plugin_installer() {
 			if ( ! current_user_can( 'administrator' ) ) {
@@ -301,6 +319,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) {
 		 *
 		 * @return boolean False if not, true if all the things check out.
 		 * @since  1.0.0
+		 * @author aubreypwd
 		 */
 		private function is_secure() {
 			// Check the user.
@@ -337,6 +356,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) {
 		 * @param  array $plugins_to_activate Plugins submitted by the user to activate.
 		 * @return boolean                    False if an injected plugin is found, true if all the requested plugins are in the DB currently.
 		 * @since  1.0.0
+		 * @author aubreypwd
 		 */
 		private function cross_check_with_active_plugins( $plugins_to_activate ) {
 			foreach( $plugins_to_activate as $plugin_to_activate ) {
@@ -355,6 +375,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) {
 		 * Sets to default array() if nothing submitted.
 		 *
 		 * @since 1.0.0
+		 * @author aubreypwd
 		 */
 		private function set_safe_missing_plugins() {
 			if ( $this->form_submitted_plugins() ) {
@@ -367,6 +388,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) {
 		 *
 		 * @return boolean True for yes, false for no.
 		 * @since  1.0.0
+		 * @author aubreypwd
 		 */
 		private function is_installing() {
 			$form_submit = isset( $_REQUEST[ $this->form_nonce_name ] );
@@ -383,6 +405,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) {
 		 *
 		 * @return boolean True if there are missing plugin, false if none were found.
 		 * @since  1.0.0
+		 * @author aubreypwd
 		 */
 		private function is_missing_plugins() {
 			if ( sizeof( $this->missing_plugins ) > 0 ) {
@@ -398,6 +421,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) {
 		 * @param  string  $plugin_file The plugin file.
 		 * @return boolean              True if it was skipped previously, false if not.
 		 * @since  1.0.0
+		 * @author aubreypwd
 		 */
 		private function is_forgotten_plugin( $plugin_file ) {
 			if ( in_array( $plugin_file, $this->forgotten_plugins() ) ) {
@@ -411,6 +435,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) {
 		 * Check for missing plugins.
 		 *
 		 * @since  1.0.0
+		 * @author aubreypwd
 		 */
 		private function set_missing_plugins_at_runtime() {
 			foreach ( $this->active_plugins_at_runtime as $plugin_file ) {
@@ -424,6 +449,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) {
 		 * Filter our plugins that aren't on the WordPress.org repo.
 		 *
 		 * @since   1.0.0
+		 * @author aubreypwd
 		 */
 		private function filter_out_non_wp_org_plugins() {
 			foreach ( $this->missing_plugins as $key => $plugin_path ) {
@@ -445,6 +471,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) {
 		 * Set the active plugins when the plugin loads.
 		 *
 		 * @since 1.0.0
+		 * @author aubreypwd
 		 */
 		private function set_active_plugins_at_runtime() {
 			$active_plugins = get_option( 'active_plugins' ); // The active plugins in the DB
@@ -465,6 +492,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) {
 		 *
 		 * @return boolean True if it is and set to true itself, false if not.
 		 * @since  1.0.0
+		 * @author aubreypwd
 		 */
 		private function is_hijack_mode() {
 			// Add define( 'MISSING_PLUGINS_HIJACK', true ) to your wp-config to set this mode.
@@ -477,6 +505,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) {
 		 * Ask the users which plugins (missing files) they want to install.
 		 *
 		 * @since 1.0.0
+		 * @author aubreypwd
 		 */
 		private function the_plugin_chooser() {
 			if ( ! current_user_can( 'administrator' ) ) {
@@ -574,6 +603,7 @@ if ( ! class_exists( 'Missing_Plugins' ) ) {
 	 * Shows an error in the Admin when there is some kind of conflict.
 	 *
 	 * @since  1.0.0
+	 * @author aubreypwd
 	 */
 	function missing_plugins_class_exists() {
 		?>
