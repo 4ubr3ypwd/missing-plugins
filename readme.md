@@ -27,6 +27,16 @@ control and re-activating the plugin (and maybe having to re-pull your DB).
 
 ![](http://g.recordit.co/vT5Kadw0Bv.gif)
 
+# Disabling Missing Plugins
+
+If you have a case where you want to keep Missing Plugins active but disable
+it from `wp-config.php` use:
+
+`define( 'DISABLE_MISSING_PLUGINS', true )`
+
+This will keep Missing Plugins from running at all. Good for Production if you
+don't want the site to freeze up if a plugin file is missing.
+
 # Changelog
 
 ## 1.0
